@@ -117,19 +117,30 @@ class FanClubApp {
     }
 
     async checkAuthStatus() {
-        if (!this.token) return;
+        if (!this.token) {
+            this.updateAuthUI(false);
+            return;
+        }
         
         try {
             const response = await this.apiCall('/user/profile');
             if (response.ok) {
                 this.currentUser = await response.json();
                 this.updateAuthUI(true);
+                // ログイン済みなら常にトップページを表示
+                if (window.location.hash === '#login' || window.location.hash === '#signup') {
+                    this.showPage('topPage');
+                }
             } else {
-                this.logout();
+                this.token = null;
+                localStorage.removeItem('auth_token');
+                this.updateAuthUI(false);
             }
         } catch (error) {
             console.error('Auth check failed:', error);
-            this.logout();
+            this.token = null;
+            localStorage.removeItem('auth_token');
+            this.updateAuthUI(false);
         }
     }
 
