@@ -152,9 +152,15 @@ class FanClubApp {
     }
 
     updateAuthUI(isLoggedIn) {
-        document.getElementById('loginBtn').style.display = isLoggedIn ? 'none' : 'inline-flex';
-        document.getElementById('signupBtn').style.display = isLoggedIn ? 'none' : 'inline-flex';
-        document.getElementById('userMenu').style.display = isLoggedIn ? 'flex' : 'none';
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        const userMenu = document.getElementById('userMenu');
+        
+        if (loginBtn) loginBtn.style.display = isLoggedIn ? 'none' : 'inline-flex';
+        if (signupBtn) signupBtn.style.display = isLoggedIn ? 'none' : 'inline-flex';
+        if (userMenu) userMenu.style.display = isLoggedIn ? 'flex' : 'none';
+        
+        console.log('Auth UI updated:', { isLoggedIn, currentUser: this.currentUser });
     }
 
     showPage(pageId) {
@@ -459,7 +465,7 @@ class FanClubApp {
         }
         
         container.innerHTML = fanclubs.map(fanclub => `
-            <div class="fanclub-card" onclick="app.viewFanclub(${fanclub.id})">
+            <div class="fanclub-card" onclick="app.viewFanclub('${fanclub.id}')">
                 ${fanclub.cover_image_url ? `<img src="${fanclub.cover_image_url}" alt="${fanclub.name}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 16px;">` : ''}
                 <div class="fanclub-card-header">
                     <h3>${fanclub.name}</h3>
