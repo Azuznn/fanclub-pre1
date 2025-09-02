@@ -101,26 +101,43 @@ const authenticateToken = (req, res, next) => {
 
 // ユーザー認証API
 app.post('/api/auth/signup', async (req, res) => {
+    console.log('Signup request received:', req.body);
+    
     const { nickname, email, phone, password } = req.body;
 
     if (!nickname || !email || !password) {
+        console.log('Missing required fields');
         return res.status(400).json({ error: '必須項目が不足しています' });
     }
 
+    if (!supabase) {
+        console.error('Supabase client not initialized');
+        return res.status(500).json({ error: 'データベース接続エラー' });
+    }
+
     try {
+        console.log('Checking existing user...');
         // 既存ユーザーチェック
-        const { data: existingUser } = await supabase
+        const { data: existingUser, error: checkError } = await supabase
             .from('users')
             .select('id')
             .eq('email', email)
             .single();
 
+        if (checkError && checkError.code !== 'PGRST116') {
+            console.error('User check error:', checkError);
+            return res.status(500).json({ error: 'ユーザー確認エラー', details: checkError.message });
+        }
+
         if (existingUser) {
+            console.log('User already exists');
             return res.status(400).json({ error: 'このメールアドレスは既に登録されています' });
         }
 
+        console.log('Hashing password...');
         const hashedPassword = await bcrypt.hash(password, 10);
         
+        console.log('Creating user...');
         const { data: user, error } = await supabase
             .from('users')
             .insert([
@@ -135,14 +152,25 @@ app.post('/api/auth/signup', async (req, res) => {
             .single();
 
         if (error) {
-            console.error('Signup error:', error);
-            return res.status(500).json({ error: 'ユーザー作成エラー' });
+            console.error('User creation error:', error);
+            return res.status(500).json({ 
+                error: 'ユーザー作成エラー', 
+                details: error.message,
+                code: error.code 
+            });
         }
 
+        console.log('User created successfully:', user.id);
+
         // リマインダー設定のデフォルト値を作成
-        await supabase
-            .from('reminder_settings')
-            .insert([{ user_id: user.id }]);
+        try {
+            await supabase
+                .from('reminder_settings')
+                .insert([{ user_id: user.id }]);
+        } catch (reminderError) {
+            console.warn('Reminder settings creation failed:', reminderError);
+            // リマインダー設定は必須ではないので続行
+        }
 
         const token = jwt.sign({ id: user.id, email }, JWT_SECRET, { expiresIn: '24h' });
 
@@ -158,7 +186,10 @@ app.post('/api/auth/signup', async (req, res) => {
         });
     } catch (error) {
         console.error('Signup error:', error);
-        res.status(500).json({ error: 'サーバーエラー' });
+        res.status(500).json({ 
+            error: 'サーバーエラー', 
+            details: error.message 
+        });
     }
 });
 
