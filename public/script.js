@@ -15,7 +15,14 @@ class FanClubApp {
     async init() {
         this.setupEventListeners();
         this.initializeRichEditors();
-        await this.checkAuthStatus();
+        
+        // 初期状態でログイン状態をチェック
+        if (this.token) {
+            await this.checkAuthStatus();
+        } else {
+            this.updateAuthUI(false);
+        }
+        
         await this.loadFeaturedFanclubs();
     }
 
@@ -753,6 +760,143 @@ class FanClubApp {
                 ...options.headers,
             },
         });
+    }
+
+    // Fanclub tab functionality
+    showFanclubTab(tabName) {
+        document.querySelectorAll('.fanclub-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.fanclub-tab-content').forEach(content => content.classList.remove('active'));
+        
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        document.getElementById(`fanclub${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Tab`).classList.add('active');
+        
+        if (tabName === 'chat' && this.currentFanclub) {
+            this.loadChatMessages();
+        }
+    }
+
+    // Chat functionality
+    async loadChatMessages() {
+        if (!this.currentFanclub) return;
+        
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInputSection = document.getElementById('chatInputSection');
+        const chatLoginPrompt = document.getElementById('chatLoginPrompt');
+        
+        // Check if user is a member
+        const isMember = await this.checkMembership(this.currentFanclub.id);
+        
+        if (isMember) {
+            chatInputSection.style.display = 'block';
+            chatLoginPrompt.style.display = 'none';
+            this.setupChatEventListeners();
+        } else {
+            chatInputSection.style.display = 'none';
+            chatLoginPrompt.style.display = 'block';
+        }
+        
+        // Load chat messages (mock data for now)
+        this.renderChatMessages([
+            {
+                id: 1,
+                author: 'クリエイター',
+                message: 'ファンクラブへようこそ！気軽に交流しましょう！',
+                timestamp: new Date(Date.now() - 3600000),
+                isOwn: false
+            },
+            {
+                id: 2,
+                author: 'ファン1',
+                message: '応援しています！新作楽しみです！',
+                timestamp: new Date(Date.now() - 1800000),
+                isOwn: false
+            }
+        ]);
+    }
+
+    setupChatEventListeners() {
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendChatBtn');
+        
+        if (sendBtn.hasAttribute('data-listener-added')) return;
+        
+        sendBtn.setAttribute('data-listener-added', 'true');
+        sendBtn.addEventListener('click', () => this.sendChatMessage());
+        
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.sendChatMessage();
+            }
+        });
+    }
+
+    sendChatMessage() {
+        const chatInput = document.getElementById('chatInput');
+        const message = chatInput.value.trim();
+        
+        if (!message || !this.currentUser) return;
+        
+        const newMessage = {
+            id: Date.now(),
+            author: this.currentUser.nickname,
+            message: message,
+            timestamp: new Date(),
+            isOwn: true
+        };
+        
+        // Add to chat messages
+        const chatMessages = document.getElementById('chatMessages');
+        const existingMessages = Array.from(chatMessages.children).map(child => ({
+            id: parseInt(child.dataset.messageId),
+            author: child.querySelector('.chat-message-author').textContent,
+            message: child.querySelector('.chat-message-text').textContent,
+            timestamp: new Date(child.querySelector('.chat-message-time').textContent),
+            isOwn: child.classList.contains('own')
+        }));
+        
+        existingMessages.push(newMessage);
+        this.renderChatMessages(existingMessages);
+        
+        chatInput.value = '';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    renderChatMessages(messages) {
+        const chatMessages = document.getElementById('chatMessages');
+        
+        chatMessages.innerHTML = messages.map(msg => `
+            <div class="chat-message ${msg.isOwn ? 'own' : ''}" data-message-id="${msg.id}">
+                <div class="chat-message-content">
+                    <div class="chat-message-author">${msg.author}</div>
+                    <div class="chat-message-text">${msg.message}</div>
+                    <div class="chat-message-time">${this.formatChatTime(msg.timestamp)}</div>
+                </div>
+            </div>
+        `).join('');
+        
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    formatChatTime(date) {
+        const now = new Date();
+        const diff = now - date;
+        
+        if (diff < 60000) return 'たった今';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}分前`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}時間前`;
+        
+        return date.toLocaleDateString('ja-JP');
+    }
+
+    async checkMembership(fanclubId) {
+        if (!this.currentUser) return false;
+        
+        try {
+            const response = await this.apiCall(`/fanclubs/${fanclubId}/posts?user_id=${this.currentUser.id}`);
+            return response.ok; // If user can see posts, they're likely a member
+        } catch (error) {
+            return false;
+        }
     }
 
     showToast(message, type = 'info') {
