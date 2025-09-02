@@ -6,15 +6,15 @@
 }
 
 :root {
-    /* Colors - Ameba inspired palette */
-    --color-primary: #FF6B9D;
-    --color-primary-dark: #E85A8B;
-    --color-primary-light: #FFB3D1;
-    --color-secondary: #4ECDC4;
-    --color-accent: #FFE66D;
-    --color-warning: #FF8C42;
-    --color-success: #6BCF7F;
-    --color-error: #FF5757;
+    /* Modern color palette */
+    --color-primary: #6366F1;
+    --color-primary-dark: #4F46E5;
+    --color-primary-light: #A5B4FC;
+    --color-secondary: #10B981;
+    --color-accent: #F59E0B;
+    --color-warning: #EF4444;
+    --color-success: #10B981;
+    --color-error: #EF4444;
     
     /* Neutral colors */
     --color-text-primary: #2D3748;
@@ -65,19 +65,76 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
     line-height: 1.6;
     color: var(--color-text-primary);
-    background-color: var(--color-bg-secondary);
+    background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%);
     font-size: 16px;
     overflow-x: hidden;
 }
 
+/* Modern gradient text */
+.gradient-text {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Hero stats */
+.hero-stats {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+/* Hero illustration update */
+.hero-gradient-bg {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    border-radius: 50%;
+    opacity: 0.1;
+    animation: float 6s ease-in-out infinite;
+}
+
+.hero-icon {
+    position: relative;
+    z-index: 2;
+    font-size: 3rem;
+    color: var(--color-primary);
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
 /* Header Styles */
 .main-header {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-    color: white;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--color-border-light);
+    color: var(--color-text-primary);
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
 .header-container {
@@ -101,7 +158,7 @@ body {
     align-items: center;
     gap: var(--spacing-sm);
     text-decoration: none;
-    color: white;
+    color: var(--color-primary);
     font-size: 1.5rem;
     font-weight: 700;
     transition: var(--transition-base);
