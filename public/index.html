@@ -29,8 +29,8 @@
                     <i class="fas fa-search"></i>
                 </button>
                 <div class="auth-buttons">
-                    <button id="loginBtn" class="btn btn-outline">ログイン</button>
-                    <button id="signupBtn" class="btn btn-primary">新規登録</button>
+                    <button id="loginBtn" class="btn btn-outline" style="display: none;">ログイン</button>
+                    <button id="signupBtn" class="btn btn-primary" style="display: none;">新規登録</button>
                     <div id="userMenu" class="user-menu" style="display: none;">
                         <button id="myPageBtn" class="btn btn-outline">
                             <i class="fas fa-user"></i> マイページ
@@ -295,13 +295,49 @@
                     </div>
                 </div>
 
-                <!-- Posts Section -->
+                <!-- Content Tabs -->
                 <div class="fanclub-content">
-                    <div class="content-header">
-                        <h2>投稿</h2>
+                    <div class="fanclub-tabs">
+                        <button class="tab-btn active" data-tab="posts" onclick="app.showFanclubTab('posts')">
+                            <i class="fas fa-newspaper"></i> 投稿
+                        </button>
+                        <button class="tab-btn" data-tab="chat" onclick="app.showFanclubTab('chat')">
+                            <i class="fas fa-comments"></i> メンバーチャット
+                        </button>
                     </div>
-                    <div id="fanclubPosts" class="posts-container">
-                        <!-- Posts will be loaded here -->
+
+                    <!-- Posts Tab -->
+                    <div id="fanclubPostsTab" class="fanclub-tab-content active">
+                        <div class="content-header">
+                            <h2>投稿一覧</h2>
+                        </div>
+                        <div id="fanclubPosts" class="posts-container">
+                            <!-- Posts will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Chat Tab -->
+                    <div id="fanclubChatTab" class="fanclub-tab-content">
+                        <div class="content-header">
+                            <h2>メンバー交流チャット</h2>
+                            <p class="text-muted">ファンクラブメンバー同士で交流しよう</p>
+                        </div>
+                        <div class="chat-container">
+                            <div id="chatMessages" class="chat-messages">
+                                <!-- Chat messages will be loaded here -->
+                            </div>
+                            <div id="chatInputSection" class="chat-input-section" style="display: none;">
+                                <div class="chat-input-container">
+                                    <input type="text" id="chatInput" class="chat-input" placeholder="メッセージを入力...">
+                                    <button id="sendChatBtn" class="btn btn-primary chat-send-btn">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="chatLoginPrompt" class="chat-login-prompt">
+                                <p>チャットに参加するにはファンクラブメンバーになってください</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
