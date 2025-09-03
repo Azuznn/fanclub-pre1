@@ -107,6 +107,10 @@ class MockSupabaseClient {
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 500));
         
+        // Load users from localStorage first
+        const savedUsers = JSON.parse(localStorage.getItem('mock_users_db') || '{}');
+        this.mockUsers = { ...this.mockUsers, ...savedUsers };
+        
         // Check mock users and default test users
         const defaultUsers = {
             'test@example.com': { password: 'password', name: 'テストユーザー', id: 'test-1', nickname: 'テストユーザー' },
@@ -116,6 +120,9 @@ class MockSupabaseClient {
         
         const allUsers = { ...defaultUsers, ...this.mockUsers };
         const user = allUsers[email];
+        
+        console.log('Available users:', Object.keys(allUsers));
+        console.log('Looking for user:', email);
         
         if (user && user.password === password) {
             const token = 'mock_token_' + Date.now();
@@ -152,8 +159,19 @@ class MockSupabaseClient {
         
         const { nickname, email, phone, password } = userData;
         
+        // Load existing users from localStorage
+        const savedUsers = JSON.parse(localStorage.getItem('mock_users_db') || '{}');
+        this.mockUsers = { ...this.mockUsers, ...savedUsers };
+        
+        // Check default users too
+        const defaultUsers = {
+            'test@example.com': { password: 'password', name: 'テストユーザー', id: 'test-1', nickname: 'テストユーザー' },
+            'admin@fanclub.com': { password: 'admin123', name: '管理者', id: 'admin-1', nickname: '管理者' },
+            'user@demo.jp': { password: 'demo', name: 'デモユーザー', id: 'demo-1', nickname: 'デモユーザー' }
+        };
+        
         // Check if user already exists
-        if (this.mockUsers[email]) {
+        if (this.mockUsers[email] || defaultUsers[email]) {
             return {
                 response: { ok: false },
                 data: { error: 'このメールアドレスは既に登録されています' }
