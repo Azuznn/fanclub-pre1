@@ -545,14 +545,15 @@ body {
 }
 
 .header-actions .btn-outline {
-    color: white;
-    border-color: rgba(255, 255, 255, 0.5);
+    color: #000;
+    border-color: #000;
+    background: #fff;
 }
 
 .header-actions .btn-outline:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: white;
-    color: white;
+    background: var(--color-secondary);
+    border-color: #000;
+    color: #000;
 }
 
 .btn-large {
@@ -666,13 +667,15 @@ body {
 }
 
 .hero-actions .btn-outline {
-    color: white;
-    border-color: rgba(255, 255, 255, 0.5);
+    color: #000;
+    border-color: #000;
+    background: #fff;
 }
 
 .hero-actions .btn-outline:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: white;
+    background: var(--color-secondary);
+    border-color: #000;
+    color: #000;
 }
 
 .hero-image {

@@ -580,7 +580,7 @@ class FanClubApp {
         }
         
         container.innerHTML = fanclubs.map(fanclub => `
-            <div class="fanclub-card" onclick="app.showFanclubDetail('${fanclub.id}')">
+            <div class="fanclub-card" data-fanclub-id="${fanclub.id}" style="cursor: pointer;">
                 ${fanclub.cover_image_url ? `<img src="${fanclub.cover_image_url}" alt="${fanclub.name}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 16px;">` : ''}
                 <div class="fanclub-card-header">
                     <h3>${fanclub.name}</h3>
@@ -604,6 +604,26 @@ class FanClubApp {
                 </div>
             </div>
         `).join('');
+        
+        // Add click event listeners to fanclub cards
+        setTimeout(() => {
+            container.querySelectorAll('.fanclub-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const fanclubId = card.dataset.fanclubId;
+                    console.log('Fanclub card clicked, ID:', fanclubId);
+                    // showFanclubDetail method is in fanclub-functions.js, should be available
+                    if (window.app && window.app.showFanclubDetail) {
+                        window.app.showFanclubDetail(fanclubId);
+                    } else if (this.showFanclubDetail) {
+                        this.showFanclubDetail(fanclubId);
+                    } else {
+                        console.error('showFanclubDetail method not found', this);
+                        // Fallback: try to call viewFanclub
+                        this.viewFanclub(fanclubId);
+                    }
+                });
+            });
+        }, 100);
     }
 
     async viewFanclub(fanclubId) {
