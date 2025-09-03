@@ -561,5 +561,21 @@
     </div>
 
     <script src="script.js"></script>
+    <script>
+        // Vercel環境デバッグ用コード
+        console.log('Environment:', {
+            hostname: window.location.hostname,
+            origin: window.location.origin,
+            pathname: window.location.pathname,
+            protocol: window.location.protocol
+        });
+        
+        // 初期化後のモーダル状態をチェック
+        setTimeout(() => {
+            const modal = document.getElementById('authModal');
+            console.log('Auth modal display:', window.getComputedStyle(modal).display);
+            console.log('Auth modal classes:', modal.classList.toString());
+        }, 1000);
+    </script>
 </body>
 </html>
