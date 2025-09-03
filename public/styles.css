@@ -248,7 +248,7 @@ body {
 
 /* Modal styles */
 .modal {
-    display: none;
+    display: none !important; /* Vercel環境でも確実に非表示 */
     position: fixed;
     top: 0;
     left: 0;
@@ -261,7 +261,7 @@ body {
 }
 
 .modal.show {
-    display: flex;
+    display: flex !important; /* show時は確実に表示 */
     align-items: center;
     justify-content: center;
 }
