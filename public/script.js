@@ -14,10 +14,13 @@ class FanClubApp {
     }
 
     async init() {
+        console.log('App init started');
+        
         // モーダルを確実に非表示にする
         const authModal = document.getElementById('authModal');
         if (authModal) {
             authModal.classList.remove('show');
+            console.log('Modal hidden on init');
         }
         
         this.setupEventListeners();
@@ -35,6 +38,8 @@ class FanClubApp {
         
         // トップページを確実に表示
         this.showPage('topPage');
+        
+        console.log('App init completed');
     }
 
     setupEventListeners() {
@@ -61,15 +66,29 @@ class FanClubApp {
         document.getElementById('loginForm').addEventListener('submit', (e) => this.handleLogin(e));
         document.getElementById('signupForm').addEventListener('submit', (e) => this.handleSignup(e));
         
-        // Auth tab buttons - イベントリスナーを追加（onclick属性のバックアップ）
-        document.querySelectorAll('.auth-tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const tab = btn.getAttribute('data-auth-tab');
-                if (tab) {
-                    this.switchAuthTab(tab);
-                }
+        // モーダルの閉じるボタン
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+        if (modalCloseBtn) {
+            modalCloseBtn.addEventListener('click', () => this.closeAuthModal());
+        }
+        
+        // タブ切り替えボタン
+        const loginTabBtn = document.getElementById('loginTabBtn');
+        const signupTabBtn = document.getElementById('signupTabBtn');
+        
+        if (loginTabBtn) {
+            loginTabBtn.addEventListener('click', () => {
+                console.log('Login tab clicked');
+                this.switchAuthTab('login');
             });
-        });
+        }
+        
+        if (signupTabBtn) {
+            signupTabBtn.addEventListener('click', () => {
+                console.log('Signup tab clicked');
+                this.switchAuthTab('signup');
+            });
+        }
         
         // Main actions
         document.getElementById('createClubBtn').addEventListener('click', () => this.showCreateFanclub());
@@ -986,40 +1005,45 @@ class FanClubApp {
     }
 
     closeAuthModal() {
+        console.log('Closing auth modal');
         const modal = document.getElementById('authModal');
-        modal.classList.remove('show');
+        if (modal) {
+            modal.classList.remove('show');
+        }
     }
 
     switchAuthTab(tab) {
         console.log('Switching to tab:', tab);
         
-        // タブボタンの切り替え
-        const tabButtons = document.querySelectorAll('.auth-tab-btn');
-        tabButtons.forEach(btn => {
-            btn.classList.remove('active');
-        });
+        // ログインタブボタン
+        const loginTabBtn = document.getElementById('loginTabBtn');
+        const signupTabBtn = document.getElementById('signupTabBtn');
         
-        // タブコンテンツの切り替え
-        const tabContents = document.querySelectorAll('.auth-tab-content');
-        tabContents.forEach(content => {
-            content.classList.remove('active');
-        });
+        // タブコンテンツ
+        const loginTab = document.getElementById('loginTab');
+        const signupTab = document.getElementById('signupTab');
         
-        // 選択されたタブをアクティブに
-        const selectedButton = document.querySelector(`[data-auth-tab="${tab}"]`);
-        const selectedContent = document.getElementById(`${tab}Tab`);
-        
-        if (selectedButton) {
-            selectedButton.classList.add('active');
-        } else {
-            console.error('Tab button not found:', tab);
+        if (tab === 'login') {
+            if (loginTabBtn) {
+                loginTabBtn.classList.add('active');
+                signupTabBtn.classList.remove('active');
+            }
+            if (loginTab) {
+                loginTab.classList.add('active');
+                signupTab.classList.remove('active');
+            }
+        } else if (tab === 'signup') {
+            if (signupTabBtn) {
+                signupTabBtn.classList.add('active');
+                loginTabBtn.classList.remove('active');
+            }
+            if (signupTab) {
+                signupTab.classList.add('active');
+                loginTab.classList.remove('active');
+            }
         }
         
-        if (selectedContent) {
-            selectedContent.classList.add('active');
-        } else {
-            console.error('Tab content not found:', tab);
-        }
+        console.log('Tab switch complete');
     }
 
     showToast(message, type = 'info') {
@@ -1038,17 +1062,10 @@ class FanClubApp {
     }
 }
 
-// Initialize the app
-let app;
-
-// DOMの準備が完了してから初期化
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        app = new FanClubApp();
-        window.app = app; // グローバルに公開（onclick用）
-    });
-} else {
-    // すでにDOMが読み込まれている場合
-    app = new FanClubApp();
-    window.app = app;
-}
+// Initialize the app when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing app...');
+    const app = new FanClubApp();
+    window.app = app; // グローバルに公開
+    console.log('App initialized');
+});
