@@ -2,8 +2,8 @@ class FanClubApp {
     constructor() {
         this.currentUser = null;
         this.currentFanclub = null;
-        // Initialize Supabase client
-        this.supabaseClient = new SupabaseClient();
+        // Initialize Mock Supabase client for testing
+        this.supabaseClient = new MockSupabaseClient();
         this.token = this.supabaseClient.token;
         
         // Rich text editors
@@ -407,12 +407,18 @@ class FanClubApp {
         if (!query) return;
         
         try {
-            const response = await fetch(`${this.apiBase}/fanclubs/search?q=${encodeURIComponent(query)}`);
-            const fanclubs = await response.json();
-            
-            this.showPage('searchPage');
-            this.renderFanclubs(fanclubs, 'searchResults');
-            document.getElementById('searchPageInput').value = query;
+            const response = await this.supabaseClient.getFanclubs();
+            if (response.ok) {
+                const allFanclubs = await response.json();
+                const filteredFanclubs = allFanclubs.filter(fanclub => 
+                    fanclub.name.toLowerCase().includes(query.toLowerCase()) ||
+                    fanclub.description.toLowerCase().includes(query.toLowerCase())
+                );
+                
+                this.showPage('searchPage');
+                this.renderFanclubs(filteredFanclubs, 'searchResults');
+                document.getElementById('searchPageInput').value = query;
+            }
         } catch (error) {
             console.error('Search failed:', error);
             this.showToast('検索に失敗しました', 'error');
@@ -427,9 +433,15 @@ class FanClubApp {
         }
         
         try {
-            const response = await fetch(`${this.apiBase}/fanclubs/search?q=${encodeURIComponent(query)}`);
-            const fanclubs = await response.json();
-            this.renderFanclubs(fanclubs, 'searchResults');
+            const response = await this.supabaseClient.getFanclubs();
+            if (response.ok) {
+                const allFanclubs = await response.json();
+                const filteredFanclubs = allFanclubs.filter(fanclub => 
+                    fanclub.name.toLowerCase().includes(query.toLowerCase()) ||
+                    fanclub.description.toLowerCase().includes(query.toLowerCase())
+                );
+                this.renderFanclubs(filteredFanclubs, 'searchResults');
+            }
         } catch (error) {
             console.error('Search failed:', error);
             this.showToast('検索に失敗しました', 'error');
