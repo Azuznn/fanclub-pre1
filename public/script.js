@@ -61,6 +61,16 @@ class FanClubApp {
         document.getElementById('loginForm').addEventListener('submit', (e) => this.handleLogin(e));
         document.getElementById('signupForm').addEventListener('submit', (e) => this.handleSignup(e));
         
+        // Auth tab buttons - イベントリスナーを追加（onclick属性のバックアップ）
+        document.querySelectorAll('.auth-tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tab = btn.getAttribute('data-auth-tab');
+                if (tab) {
+                    this.switchAuthTab(tab);
+                }
+            });
+        });
+        
         // Main actions
         document.getElementById('createClubBtn').addEventListener('click', () => this.showCreateFanclub());
         document.getElementById('exploreClubBtn').addEventListener('click', () => this.showPage('searchPage'));
@@ -981,11 +991,35 @@ class FanClubApp {
     }
 
     switchAuthTab(tab) {
-        document.querySelectorAll('.auth-tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.auth-tab-content').forEach(content => content.classList.remove('active'));
+        console.log('Switching to tab:', tab);
         
-        document.querySelector(`[data-auth-tab="${tab}"]`).classList.add('active');
-        document.getElementById(`${tab}Tab`).classList.add('active');
+        // タブボタンの切り替え
+        const tabButtons = document.querySelectorAll('.auth-tab-btn');
+        tabButtons.forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // タブコンテンツの切り替え
+        const tabContents = document.querySelectorAll('.auth-tab-content');
+        tabContents.forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        // 選択されたタブをアクティブに
+        const selectedButton = document.querySelector(`[data-auth-tab="${tab}"]`);
+        const selectedContent = document.getElementById(`${tab}Tab`);
+        
+        if (selectedButton) {
+            selectedButton.classList.add('active');
+        } else {
+            console.error('Tab button not found:', tab);
+        }
+        
+        if (selectedContent) {
+            selectedContent.classList.add('active');
+        } else {
+            console.error('Tab content not found:', tab);
+        }
     }
 
     showToast(message, type = 'info') {
@@ -1005,4 +1039,16 @@ class FanClubApp {
 }
 
 // Initialize the app
-const app = new FanClubApp();
+let app;
+
+// DOMの準備が完了してから初期化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        app = new FanClubApp();
+        window.app = app; // グローバルに公開（onclick用）
+    });
+} else {
+    // すでにDOMが読み込まれている場合
+    app = new FanClubApp();
+    window.app = app;
+}
