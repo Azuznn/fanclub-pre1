@@ -537,55 +537,47 @@ class FanClubApp {
             // Simulate API delay
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Create fanclub in localStorage
-            const existingFanclubs = JSON.parse(localStorage.getItem('mock_fanclubs') || '[]');
-            const newFanclub = {
-                id: Date.now(),
+            const response = await this.supabaseClient.createFanclub({
                 name,
                 description,
                 monthly_fee,
                 purpose,
-                cover_image_url: cover_image_url || 'https://via.placeholder.com/800x400',
-                owner_id: this.currentUser.id,
-                owner_name: this.currentUser.name,
-                member_count: 1,
-                created_at: new Date().toISOString()
-            };
+                cover_image_url
+            });
             
-            existingFanclubs.push(newFanclub);
-            localStorage.setItem('mock_fanclubs', JSON.stringify(existingFanclubs));
+            const data = await response.json();
             
-            // Create initial post if editor has content
-            if (this.initialPostEditor && this.initialPostEditor.root.innerHTML.trim() !== '<p><br></p>') {
-                const posts = JSON.parse(localStorage.getItem(`fanclub_${newFanclub.id}_posts`) || '[]');
-                posts.push({
-                    id: Date.now(),
-                    title: 'ファンクラブ開設のお知らせ',
-                    content: this.initialPostEditor.root.innerHTML,
-                    excerpt: 'ファンクラブを開設しました！',
-                    visibility: 'public',
-                    author_id: this.currentUser.id,
-                    author_name: this.currentUser.name,
-                    created_at: new Date().toISOString(),
-                    likes: 0
-                });
-                localStorage.setItem(`fanclub_${newFanclub.id}_posts`, JSON.stringify(posts));
+            if (response.ok) {
+                // Create initial post if editor has content
+                if (this.initialPostEditor && this.initialPostEditor.root.innerHTML.trim() !== '<p><br></p>') {
+                    await this.supabaseClient.createPost(data.id, {
+                        title: 'ファンクラブ開設のお知らせ',
+                        content: this.initialPostEditor.root.innerHTML,
+                        excerpt: 'ファンクラブを開設しました！',
+                        visibility: 'public'
+                    });
+                }
+                
+                this.showToast('ファンクラブが作成されました！', 'success');
+                document.getElementById('createClubForm').reset();
+                if (this.initialPostEditor) this.initialPostEditor.setContents([]);
+                
+                // 作成したファンクラブを表示
+                this.showPage('topPage');
+                await this.loadFeaturedFanclubs();
+                
+                // 作成したファンクラブに移動
+                if (data.id) {
+                    setTimeout(() => {
+                        this.updateURL(`fanclub/${data.id}`);
+                        if (typeof this.showFanclubDetail === 'function') {
+                            this.showFanclubDetail(data.id);
+                        }
+                    }, 1000);
+                }
+            } else {
+                this.showToast(data.error || 'ファンクラブ作成に失敗しました', 'error');
             }
-            
-            // Add creator as first member
-            const members = [{
-                user_id: this.currentUser.id,
-                user_name: this.currentUser.name,
-                joined_at: new Date().toISOString(),
-                role: 'owner'
-            }];
-            localStorage.setItem(`fanclub_${newFanclub.id}_members`, JSON.stringify(members));
-            
-            this.showToast('ファンクラブが作成されました！', 'success');
-            document.getElementById('createClubForm').reset();
-            if (this.initialPostEditor) this.initialPostEditor.setContents([]);
-            this.showPage('topPage');
-            this.loadFeaturedFanclubs();
         } catch (error) {
             console.error('Fanclub creation failed:', error);
             this.showToast('ファンクラブ作成に失敗しました', 'error');
@@ -679,62 +671,41 @@ class FanClubApp {
             
             if (response.ok) {
                 const fanclubs = await response.json();
+                console.log('Fanclubs received from API:', fanclubs);
                 if (Array.isArray(fanclubs) && fanclubs.length > 0) {
                     this.renderFanclubs(fanclubs.slice(0, 6), 'featuredClubs');
                 } else {
-                    this.renderEmptyFanclubs('featuredClubs');
+                    console.log('No fanclubs found, showing empty state');
+                    this.renderFanclubs([], 'featuredClubs');
                 }
             } else {
-                console.error('Failed to load fanclubs from Supabase');
-                this.renderEmptyFanclubs('featuredClubs');
+                console.error('Failed to load fanclubs from Supabase:', response.status);
+                this.renderFanclubs([], 'featuredClubs');
             }
         } catch (error) {
             console.error('Failed to load fanclubs:', error);
-            this.renderEmptyFanclubs('featuredClubs');
+            this.renderFanclubs([], 'featuredClubs');
         }
     }
 
     async loadAllFanclubs() {
         try {
-            const response = await fetch(`${this.apiBase}/fanclubs`);
-            const fanclubs = await response.json();
-            this.renderFanclubs(fanclubs, 'searchResults');
+            const response = await this.supabaseClient.getFanclubs();
+            
+            if (response.ok) {
+                const fanclubs = await response.json();
+                this.renderFanclubs(fanclubs, 'searchResults');
+            } else {
+                console.error('Failed to load fanclubs from Supabase');
+                this.renderFanclubs([], 'searchResults');
+            }
         } catch (error) {
             console.error('Failed to load fanclubs:', error);
+            this.renderFanclubs([], 'searchResults');
         }
     }
 
-    renderEmptyFanclubs(containerId) {
-        // 開発中はダミーデータを表示
-        const dummyFanclubs = [
-            {
-                id: 1,
-                name: "アーティストAファンクラブ",
-                description: "音楽とアートの世界を一緒に楽しみましょう！",
-                member_count: 150,
-                monthly_fee: 1500,
-                cover_image_url: "https://via.placeholder.com/400x200/3BAEC6/white?text=Artist+A"
-            },
-            {
-                id: 2,
-                name: "クリエイターBサポーターズ",
-                description: "創作活動を応援する仲間たちのコミュニティです。",
-                member_count: 89,
-                monthly_fee: 800,
-                cover_image_url: "https://via.placeholder.com/400x200/FF6B6B/white?text=Creator+B"
-            },
-            {
-                id: 3,
-                name: "配信者Cのファンルーム",
-                description: "楽しい配信と限定コンテンツをお楽しみください。",
-                member_count: 234,
-                monthly_fee: 1200,
-                cover_image_url: "https://via.placeholder.com/400x200/10B981/white?text=Streamer+C"
-            }
-        ];
-        
-        this.renderFanclubs(dummyFanclubs, containerId);
-    }
+    // renderEmptyFanclubs method removed - using renderFanclubs([]) instead
     
     renderFanclubs(fanclubs, containerId) {
         const container = document.getElementById(containerId);
@@ -745,7 +716,16 @@ class FanClubApp {
         }
         
         if (fanclubs.length === 0) {
-            container.innerHTML = '<p class="text-center">ファンクラブが見つかりませんでした。</p>';
+            container.innerHTML = `
+                <div class="empty-state" style="text-align: center; padding: 60px 20px; color: var(--color-text-muted);">
+                    <i class="fas fa-users" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                    <h3 style="margin-bottom: 8px;">まだファンクラブがありません</h3>
+                    <p style="margin-bottom: 24px;">最初のファンクラブを作成してみませんか？</p>
+                    <button class="btn btn-primary" onclick="app.showPage('createPage')">
+                        <i class="fas fa-plus"></i> ファンクラブを作る
+                    </button>
+                </div>
+            `;
             return;
         }
         

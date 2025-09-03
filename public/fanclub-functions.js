@@ -51,43 +51,11 @@ Object.assign(FanClubApp.prototype, {
         try {
             this.showLoading(true);
             
-            // ダミーファンクラブデータを使用（API未実装のため）
-            const dummyFanclubs = {
-                '1': {
-                    id: 1,
-                    name: "アーティストAファンクラブ",
-                    description: "音楽とアートの世界を一緒に楽しみましょう！",
-                    member_count: 150,
-                    monthly_fee: 1500,
-                    cover_image_url: "https://via.placeholder.com/1200x400/3BAEC6/white?text=Artist+A",
-                    purpose: "音楽活動の応援とファン同士の交流",
-                    created_at: new Date().toISOString()
-                },
-                '2': {
-                    id: 2,
-                    name: "クリエイターBサポーターズ",
-                    description: "創作活動を応援する仲間たちのコミュニティです。",
-                    member_count: 89,
-                    monthly_fee: 800,
-                    cover_image_url: "https://via.placeholder.com/1200x400/FF6B6B/white?text=Creator+B",
-                    purpose: "創作活動のサポートとファン交流",
-                    created_at: new Date().toISOString()
-                },
-                '3': {
-                    id: 3,
-                    name: "配信者Cのファンルーム",
-                    description: "楽しい配信と限定コンテンツをお楽しみください。",
-                    member_count: 234,
-                    monthly_fee: 1200,
-                    cover_image_url: "https://via.placeholder.com/1200x400/10B981/white?text=Streamer+C",
-                    purpose: "配信活動の応援とコミュニティ運営",
-                    created_at: new Date().toISOString()
-                }
-            };
+            // Supabaseからファンクラブ情報を取得
+            const response = await this.supabaseClient.getFanclub(fanclubId);
             
-            const fanclub = dummyFanclubs[fanclubId];
-            
-            if (fanclub) {
+            if (response.ok) {
+                const fanclub = await response.json();
                 this.currentFanclub = fanclub;
                 this.renderFanclubDetail(fanclub);
                 await this.loadFanclubPosts(fanclubId);
