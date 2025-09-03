@@ -297,11 +297,35 @@ Object.assign(FanClubApp.prototype, {
         
         if (!message) return;
         
-        // For now, show placeholder functionality
-        this.showToast('チャット機能は開発中です', 'info');
-        console.log('Chat message:', message);
+        if (!this.currentUser) {
+            this.showToast('チャットにはログインが必要です', 'warning');
+            return;
+        }
         
+        // Add message to localStorage-based chat storage
+        const fanclubId = this.currentFanclub?.id;
+        if (!fanclubId) return;
+        
+        const chatKey = `fanclub_chat_${fanclubId}`;
+        const existingMessages = JSON.parse(localStorage.getItem(chatKey) || '[]');
+        
+        const newMessage = {
+            id: Date.now(),
+            user_id: this.currentUser.id,
+            user_name: this.currentUser.name,
+            message: message,
+            timestamp: new Date().toISOString(),
+            created_at: new Date().toLocaleTimeString('ja-JP')
+        };
+        
+        existingMessages.push(newMessage);
+        localStorage.setItem(chatKey, JSON.stringify(existingMessages));
+        
+        // Clear input and reload messages
         if (input) input.value = '';
+        await this.loadChatMessages(fanclubId);
+        
+        this.showToast('メッセージを送信しました', 'success');
     },
     
     async handleSettingsSubmit(e) {
@@ -344,27 +368,55 @@ Object.assign(FanClubApp.prototype, {
     },
     
     async loadChatMessages(fanclubId) {
-        // Placeholder implementation - display sample chat
         const container = document.getElementById('chatMessages');
-        if (container) {
-            container.innerHTML = `
-                <div class="chat-message">
+        if (!container) return;
+        
+        // Load messages from localStorage
+        const chatKey = `fanclub_chat_${fanclubId}`;
+        const messages = JSON.parse(localStorage.getItem(chatKey) || '[]');
+        
+        // Add some initial welcome messages if empty
+        if (messages.length === 0) {
+            const welcomeMessages = [
+                {
+                    id: 1,
+                    user_id: 'system',
+                    user_name: 'システム',
+                    message: 'ファンクラブチャットへようこそ！',
+                    created_at: new Date().toLocaleTimeString('ja-JP'),
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    id: 2,
+                    user_id: 'admin',
+                    user_name: '管理者',
+                    message: 'みなさんで楽しくお話しましょう！',
+                    created_at: new Date().toLocaleTimeString('ja-JP'),
+                    timestamp: new Date().toISOString()
+                }
+            ];
+            localStorage.setItem(chatKey, JSON.stringify(welcomeMessages));
+            messages.push(...welcomeMessages);
+        }
+        
+        // Render messages
+        container.innerHTML = messages.map(msg => {
+            const isOwn = this.currentUser && msg.user_id === this.currentUser.id;
+            const isSystem = msg.user_id === 'system';
+            
+            return `
+                <div class="chat-message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''}">
                     <div class="chat-message-content">
-                        <div class="chat-message-author">ファンA</div>
-                        <div class="chat-message-text">こんにちは！参加させていただきました！</div>
-                        <div class="chat-message-time">${new Date().toLocaleTimeString('ja-JP')}</div>
-                    </div>
-                </div>
-                <div class="chat-message">
-                    <div class="chat-message-content">
-                        <div class="chat-message-author">ファンB</div>
-                        <div class="chat-message-text">よろしくお願いします✨</div>
-                        <div class="chat-message-time">${new Date().toLocaleTimeString('ja-JP')}</div>
+                        <div class="chat-message-author">${msg.user_name}</div>
+                        <div class="chat-message-text">${msg.message}</div>
+                        <div class="chat-message-time">${msg.created_at}</div>
                     </div>
                 </div>
             `;
-            container.scrollTop = container.scrollHeight;
-        }
+        }).join('');
+        
+        // Auto-scroll to bottom
+        container.scrollTop = container.scrollHeight;
         
         // Update chat visibility
         this.updateChatInputVisibility();

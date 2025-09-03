@@ -303,6 +303,18 @@
     color: rgba(255, 255, 255, 0.7);
 }
 
+.chat-message.system .chat-message-content {
+    background: #f0f0f0;
+    color: #666;
+    font-style: italic;
+    text-align: center;
+}
+
+.chat-message.system .chat-message-author {
+    color: #999;
+    font-size: 0.7rem;
+}
+
 .chat-input-area {
     display: flex;
     gap: var(--spacing-sm);

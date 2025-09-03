@@ -76,7 +76,22 @@ class FanClubApp {
         
         // 初期状態でログイン状態をチェック
         if (this.token) {
-            await this.checkAuthStatus();
+            // LocalStorageからユーザー情報を復元
+            const savedUser = localStorage.getItem('current_user');
+            if (savedUser) {
+                try {
+                    this.currentUser = JSON.parse(savedUser);
+                    console.log('User restored from localStorage:', this.currentUser);
+                    this.updateAuthUI(true);
+                } catch (error) {
+                    console.error('Error parsing saved user:', error);
+                    localStorage.removeItem('current_user');
+                    localStorage.removeItem('auth_token');
+                    this.updateAuthUI(false);
+                }
+            } else {
+                await this.checkAuthStatus();
+            }
         } else {
             this.updateAuthUI(false);
         }
@@ -414,14 +429,18 @@ class FanClubApp {
             // Mock login - simulate API call delay
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Mock users for demo
+            // Check both default mock users and registered users
             const mockUsers = {
                 'test@example.com': { password: 'password', name: 'テストユーザー', id: 1 },
                 'admin@fanclub.com': { password: 'admin123', name: '管理者', id: 2 },
                 'user@demo.jp': { password: 'demo', name: 'デモユーザー', id: 3 }
             };
             
-            const user = mockUsers[email];
+            // Also check registered users from localStorage
+            const registeredUsers = JSON.parse(localStorage.getItem('mock_users') || '{}');
+            const allUsers = { ...mockUsers, ...registeredUsers };
+            
+            const user = allUsers[email];
             if (user && user.password === password) {
                 // Successful login
                 this.token = 'mock_token_' + Date.now();
