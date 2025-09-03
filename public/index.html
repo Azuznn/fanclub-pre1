@@ -500,15 +500,15 @@
     <!-- Auth Modal -->
     <div id="authModal" class="modal">
         <div class="modal-content">
-            <button class="modal-close" onclick="app.closeAuthModal()">
+            <button class="modal-close" onclick="window.app && window.app.closeAuthModal()">
                 <i class="fas fa-times"></i>
             </button>
             
             <div class="auth-tabs">
-                <button class="auth-tab-btn active" data-auth-tab="login" onclick="app.switchAuthTab('login')">
+                <button class="auth-tab-btn active" data-auth-tab="login" onclick="window.app && window.app.switchAuthTab('login')">
                     ログイン
                 </button>
-                <button class="auth-tab-btn" data-auth-tab="signup" onclick="app.switchAuthTab('signup')">
+                <button class="auth-tab-btn" data-auth-tab="signup" onclick="window.app && window.app.switchAuthTab('signup')">
                     新規登録
                 </button>
             </div>
