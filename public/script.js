@@ -2,9 +2,9 @@ class FanClubApp {
     constructor() {
         this.currentUser = null;
         this.currentFanclub = null;
-        this.token = localStorage.getItem('auth_token');
-        // API endpoints - currently using mock data (backend not implemented)
-        this.apiBase = '/api'; // Mock API for development
+        // Initialize Supabase client
+        this.supabaseClient = new SupabaseClient();
+        this.token = this.supabaseClient.token;
         
         // Rich text editors
         this.initialPostEditor = null;
@@ -76,21 +76,24 @@ class FanClubApp {
         
         // 初期状態でログイン状態をチェック
         if (this.token) {
-            // LocalStorageからユーザー情報を復元
-            const savedUser = localStorage.getItem('current_user');
-            if (savedUser) {
-                try {
-                    this.currentUser = JSON.parse(savedUser);
-                    console.log('User restored from localStorage:', this.currentUser);
+            try {
+                const user = await this.supabaseClient.getCurrentUser();
+                if (user) {
+                    this.currentUser = user;
                     this.updateAuthUI(true);
-                } catch (error) {
-                    console.error('Error parsing saved user:', error);
+                    // 参加中のファンクラブを読み込み
+                    this.loadJoinedFanclubs();
+                } else {
+                    // トークンが無効な場合
+                    this.supabaseClient.setToken(null);
                     localStorage.removeItem('current_user');
-                    localStorage.removeItem('auth_token');
                     this.updateAuthUI(false);
                 }
-            } else {
-                await this.checkAuthStatus();
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+                this.supabaseClient.setToken(null);
+                localStorage.removeItem('current_user');
+                this.updateAuthUI(false);
             }
         } else {
             this.updateAuthUI(false);
@@ -426,46 +429,22 @@ class FanClubApp {
         this.showLoading(true);
         
         try {
-            // Mock login - simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const { response, data } = await this.supabaseClient.login(email, password);
             
-            // Check both default mock users and registered users
-            const mockUsers = {
-                'test@example.com': { password: 'password', name: 'テストユーザー', id: 1 },
-                'admin@fanclub.com': { password: 'admin123', name: '管理者', id: 2 },
-                'user@demo.jp': { password: 'demo', name: 'デモユーザー', id: 3 }
-            };
-            
-            // Also check registered users from localStorage
-            const registeredUsers = JSON.parse(localStorage.getItem('mock_users') || '{}');
-            
-            // Check in mock users first
-            let user = mockUsers[email];
-            let userId = user?.id;
-            let userName = user?.name;
-            
-            // If not found in mock, check registered users
-            if (!user) {
-                user = registeredUsers[email];
-                if (user) {
-                    userId = user.id;
-                    userName = user.nickname || user.name;
-                }
-            }
-            
-            if (user && user.password === password) {
-                // Successful login
-                this.token = 'mock_token_' + Date.now();
-                this.currentUser = { id: userId, email, name: userName };
-                localStorage.setItem('auth_token', this.token);
+            if (response.ok) {
+                this.token = data.token;
+                this.currentUser = data.user;
                 localStorage.setItem('current_user', JSON.stringify(this.currentUser));
                 
                 this.updateAuthUI(true);
                 this.closeAuthModal();
                 this.showToast('ログインしました', 'success');
                 this.updateURL('profile');
+                
+                // 参加中のファンクラブを読み込み
+                this.loadJoinedFanclubs();
             } else {
-                this.showToast('メールアドレスまたはパスワードが間違っています', 'error');
+                this.showToast(data.error || 'メールアドレスまたはパスワードが間違っています', 'error');
             }
         } catch (error) {
             console.error('Login failed:', error);
@@ -490,40 +469,25 @@ class FanClubApp {
         this.showLoading(true);
         
         try {
-            // Mock signup - simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Check if user already exists (mock check)
-            const existingUsers = JSON.parse(localStorage.getItem('mock_users') || '{}');
-            if (existingUsers[email]) {
-                this.showToast('このメールアドレスは既に登録されています', 'error');
-                return;
-            }
-            
-            // Create new mock user
-            const newUser = {
-                id: Date.now(),
+            const { response, data } = await this.supabaseClient.signup({
                 nickname,
-                name: nickname,  // Also store as name for consistency
                 email,
                 phone,
-                password,
-                created_at: new Date().toISOString()
-            };
+                password
+            });
             
-            existingUsers[email] = newUser;
-            localStorage.setItem('mock_users', JSON.stringify(existingUsers));
-            
-            // Auto login after signup
-            this.token = 'mock_token_' + Date.now();
-            this.currentUser = { id: newUser.id, email, name: nickname };
-            localStorage.setItem('auth_token', this.token);
-            localStorage.setItem('current_user', JSON.stringify(this.currentUser));
-            
-            this.updateAuthUI(true);
-            this.closeAuthModal();
-            this.showToast('アカウントが作成されました', 'success');
-            this.updateURL('profile');
+            if (response.ok) {
+                this.token = data.token;
+                this.currentUser = data.user;
+                localStorage.setItem('current_user', JSON.stringify(this.currentUser));
+                
+                this.updateAuthUI(true);
+                this.closeAuthModal();
+                this.showToast('アカウントが作成されました', 'success');
+                this.updateURL('profile');
+            } else {
+                this.showToast(data.error || 'アカウント作成に失敗しました', 'error');
+            }
         } catch (error) {
             console.error('Signup failed:', error);
             this.showToast('アカウント作成に失敗しました', 'error');
@@ -691,31 +655,21 @@ class FanClubApp {
     async loadFeaturedFanclubs() {
         console.log('loadFeaturedFanclubs called');
         try {
-            console.log('Fetching from:', `${this.apiBase}/fanclubs`);
-            const response = await fetch(`${this.apiBase}/fanclubs`);
+            const response = await this.supabaseClient.getFanclubs();
             
-            if (!response.ok) {
-                console.error('API response not ok:', response.status, response.statusText);
-                // デバッグ用: エラーメッセージを表示
-                if (response.status === 404) {
-                    console.error('API endpoint not found. Check server configuration.');
+            if (response.ok) {
+                const fanclubs = await response.json();
+                if (Array.isArray(fanclubs) && fanclubs.length > 0) {
+                    this.renderFanclubs(fanclubs.slice(0, 6), 'featuredClubs');
+                } else {
+                    this.renderEmptyFanclubs('featuredClubs');
                 }
-                this.renderEmptyFanclubs('featuredClubs');
-                return;
-            }
-            
-            const fanclubs = await response.json();
-            
-            if (Array.isArray(fanclubs) && fanclubs.length > 0) {
-                this.renderFanclubs(fanclubs.slice(0, 6), 'featuredClubs');
             } else {
+                console.error('Failed to load fanclubs from Supabase');
                 this.renderEmptyFanclubs('featuredClubs');
             }
         } catch (error) {
             console.error('Failed to load fanclubs:', error);
-            console.error('API Base:', this.apiBase);
-            // エラー時はダミーデータを表示（デバッグ用）
-            console.log('Showing dummy data due to API error');
             this.renderEmptyFanclubs('featuredClubs');
         }
     }
@@ -944,19 +898,18 @@ class FanClubApp {
         this.showLoading(true);
         
         try {
-            const response = await this.apiCall(`/fanclubs/${this.currentFanclub.id}/join`, {
-                method: 'POST',
-            });
-            
+            const response = await this.supabaseClient.joinFanclub(this.currentFanclub.id);
             const data = await response.json();
             
             if (response.ok) {
-                this.showToast(data.message, 'success');
+                this.showToast(data.message || 'ファンクラブに参加しました！', 'success');
                 this.currentFanclub.member_count++;
                 this.renderFanclubDetail(this.currentFanclub);
                 this.updateFanclubButtons();
+                // 参加中ファンクラブリストを更新
+                this.loadJoinedFanclubs();
             } else {
-                this.showToast(data.error, 'error');
+                this.showToast(data.error || '参加に失敗しました', 'error');
             }
         } catch (error) {
             console.error('Join failed:', error);
@@ -974,19 +927,18 @@ class FanClubApp {
         this.showLoading(true);
         
         try {
-            const response = await this.apiCall(`/fanclubs/${this.currentFanclub.id}/leave`, {
-                method: 'DELETE',
-            });
-            
+            const response = await this.supabaseClient.leaveFanclub(this.currentFanclub.id);
             const data = await response.json();
             
             if (response.ok) {
-                this.showToast(data.message, 'success');
-                this.currentFanclub.member_count--;
+                this.showToast(data.message || 'ファンクラブから退会しました', 'success');
+                this.currentFanclub.member_count = Math.max(0, this.currentFanclub.member_count - 1);
                 this.renderFanclubDetail(this.currentFanclub);
                 this.updateFanclubButtons();
+                // 参加中ファンクラブリストを更新
+                this.loadJoinedFanclubs();
             } else {
-                this.showToast(data.error, 'error');
+                this.showToast(data.error || '退会に失敗しました', 'error');
             }
         } catch (error) {
             console.error('Leave failed:', error);
@@ -1038,8 +990,43 @@ class FanClubApp {
     }
 
     async loadJoinedFanclubs() {
-        // Implementation for loading user's joined fanclubs
-        document.getElementById('joinedFanclubsList').innerHTML = '<p>参加中のファンクラブ一覧は開発中です。</p>';
+        if (!this.currentUser) {
+            document.getElementById('joinedFanclubsList').innerHTML = '<p>ログインしてください。</p>';
+            return;
+        }
+        
+        try {
+            const response = await this.supabaseClient.getJoinedFanclubs();
+            if (response.ok) {
+                const fanclubs = await response.json();
+                const listContainer = document.getElementById('joinedFanclubsList');
+                
+                if (fanclubs.length === 0) {
+                    listContainer.innerHTML = '<p>参加中のファンクラブはありません。</p>';
+                    return;
+                }
+                
+                listContainer.innerHTML = fanclubs.map(fanclub => `
+                    <div class="fanclub-card" onclick="app.showFanclubDetail('${fanclub.id}')">
+                        <div class="fanclub-card-image">
+                            <img src="${fanclub.cover_image_url || 'https://via.placeholder.com/300x200'}" alt="${fanclub.name}" />
+                        </div>
+                        <div class="fanclub-card-info">
+                            <h3 class="fanclub-card-title">${fanclub.name}</h3>
+                            <p class="fanclub-card-owner">${fanclub.owner_name}</p>
+                            <p class="fanclub-card-members">${fanclub.member_count}人</p>
+                            <p class="fanclub-card-fee">￥${fanclub.monthly_fee}/月</p>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                console.error('Failed to load joined fanclubs');
+                document.getElementById('joinedFanclubsList').innerHTML = '<p>ファンクラブの読み込みに失敗しました。</p>';
+            }
+        } catch (error) {
+            console.error('Error loading joined fanclubs:', error);
+            document.getElementById('joinedFanclubsList').innerHTML = '<p>エラーが発生しました。</p>';
+        }
     }
 
     loadUserProfile() {
@@ -1063,54 +1050,21 @@ class FanClubApp {
     logout() {
         this.currentUser = null;
         this.token = null;
-        localStorage.removeItem('auth_token');
+        this.supabaseClient.setToken(null);
+        localStorage.removeItem('current_user');
         this.updateAuthUI(false);
         this.showPage('topPage');
         this.showToast('ログアウトしました', 'success');
     }
 
-    // Utility methods
-    async apiCall(endpoint, options = {}) {
-        const defaultOptions = {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        };
-        
-        if (this.token) {
-            defaultOptions.headers['Authorization'] = `Bearer ${this.token}`;
-        }
-        
-        // デバッグ用ログ（Vercel環境の問題特定用）
-        const url = this.apiBase + endpoint;
-        console.log('API Call:', url);
-        
+    // メンバーシップ状態をチェック
+    async checkMembershipStatus(fanclubId) {
         try {
-            const response = await fetch(url, {
-                ...defaultOptions,
-                ...options,
-                headers: {
-                    ...defaultOptions.headers,
-                    ...options.headers,
-                },
-            });
-            
-            // エラーレスポンスの詳細をログ
-            if (!response.ok) {
-                console.error('API Error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    url: url
-                });
-            }
-            
-            return response;
+            if (!this.currentUser) return false;
+            return await this.supabaseClient.checkMembershipStatus(fanclubId);
         } catch (error) {
-            console.error('API Call Failed:', {
-                error: error.message,
-                url: url
-            });
-            throw error;
+            console.error('Error checking membership:', error);
+            return false;
         }
     }
 
