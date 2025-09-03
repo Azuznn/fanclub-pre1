@@ -1,0 +1,591 @@
+/* Fanclub Detail Page Styles */
+.fanclub-detail-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.fanclub-header {
+    position: relative;
+    margin-bottom: 0;
+}
+
+.fanclub-cover {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+}
+
+.fanclub-cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.fanclub-info-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    padding: var(--spacing-xl);
+}
+
+.fanclub-basic-info {
+    color: white;
+}
+
+.fanclub-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: var(--spacing-sm);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.fanclub-description {
+    font-size: 1.1rem;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.9;
+}
+
+.fanclub-stats {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.stat-item i {
+    opacity: 0.8;
+}
+
+.fanclub-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+/* Fanclub Navigation */
+.fanclub-nav {
+    display: flex;
+    background: white;
+    border-bottom: 2px solid var(--color-border);
+    position: sticky;
+    top: 70px;
+    z-index: 100;
+    margin-bottom: var(--spacing-lg);
+}
+
+.fanclub-nav-btn {
+    flex: 1;
+    padding: var(--spacing-md) var(--spacing-sm);
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    position: relative;
+}
+
+.fanclub-nav-btn.active {
+    color: var(--color-primary);
+}
+
+.fanclub-nav-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--color-primary);
+}
+
+.fanclub-nav-btn:hover {
+    background: var(--color-bg-secondary);
+    color: var(--color-primary);
+}
+
+/* Fanclub Tab Content */
+.fanclub-tab-content {
+    display: none;
+    padding: 0 var(--spacing-lg);
+}
+
+.fanclub-tab-content.active {
+    display: block;
+}
+
+/* Posts Tab */
+.posts-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+.post-item {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-base);
+}
+
+.post-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.post-author-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.post-meta {
+    flex: 1;
+}
+
+.post-author {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.post-date {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.post-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text-primary);
+}
+
+.post-excerpt {
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.7;
+}
+
+.post-featured-image {
+    width: 100%;
+    max-height: 300px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.post-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    border-top: 1px solid var(--color-border-light);
+    padding-top: var(--spacing-md);
+}
+
+.post-like-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-md);
+    transition: var(--transition-base);
+}
+
+.post-like-btn:hover {
+    color: var(--color-accent);
+    background: rgba(255, 107, 107, 0.1);
+}
+
+.post-like-btn.liked {
+    color: var(--color-accent);
+}
+
+/* Chat Tab */
+.chat-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.chat-messages {
+    height: 500px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    background: white;
+    margin-bottom: var(--spacing-md);
+}
+
+.chat-message {
+    display: flex;
+    margin-bottom: var(--spacing-md);
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.chat-message.own {
+    flex-direction: row-reverse;
+}
+
+.chat-message-content {
+    max-width: 70%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-tertiary);
+    position: relative;
+}
+
+.chat-message.own .chat-message-content {
+    background: var(--color-primary);
+    color: white;
+}
+
+.chat-message-author {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin-bottom: 2px;
+}
+
+.chat-message.own .chat-message-author {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.chat-message-text {
+    word-wrap: break-word;
+}
+
+.chat-message-time {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+}
+
+.chat-message.own .chat-message-time {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.chat-input-area {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.chat-form {
+    display: flex;
+    width: 100%;
+    gap: var(--spacing-sm);
+}
+
+.chat-input {
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-full);
+    font-size: 1rem;
+    transition: var(--transition-base);
+}
+
+.chat-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.chat-send-btn {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-full);
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    transition: var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+}
+
+.chat-send-btn:hover {
+    background: var(--color-primary-dark);
+}
+
+.chat-login-prompt {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--color-text-muted);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+}
+
+/* About Tab */
+.about-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.about-content {
+    background: white;
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+.about-details {
+    margin-top: var(--spacing-lg);
+}
+
+.detail-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.detail-item label {
+    min-width: 120px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.detail-item span,
+.detail-item p {
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+/* Admin Panel Styles */
+.admin-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 2px solid var(--color-border);
+}
+
+.admin-header h2 {
+    color: var(--color-text-primary);
+    font-weight: 700;
+}
+
+.admin-nav {
+    display: flex;
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xs);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-nav-btn {
+    flex: 1;
+    padding: var(--spacing-md);
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+}
+
+.admin-nav-btn.active {
+    background: var(--color-primary);
+    color: white;
+}
+
+.admin-nav-btn:hover:not(.active) {
+    background: var(--color-bg-secondary);
+    color: var(--color-primary);
+}
+
+.admin-tab-content {
+    display: none;
+}
+
+.admin-tab-content.active {
+    display: block;
+}
+
+.admin-posts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.admin-posts-list {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.admin-post-item {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-border-light);
+    transition: var(--transition-base);
+}
+
+.admin-post-item:last-child {
+    border-bottom: none;
+}
+
+.admin-post-item:hover {
+    background: var(--color-bg-secondary);
+}
+
+.admin-post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-sm);
+}
+
+.admin-post-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.admin-post-meta {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.admin-post-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+/* Post Modal Styles */
+.post-form {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.rich-editor {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    min-height: 200px;
+}
+
+.image-upload-area {
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    text-align: center;
+    transition: var(--transition-base);
+}
+
+.image-upload-area:hover {
+    border-color: var(--color-primary);
+    background: var(--color-bg-secondary);
+}
+
+.image-preview {
+    margin-top: var(--spacing-md);
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: var(--radius-md);
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .fanclub-title {
+        font-size: 2rem;
+    }
+    
+    .fanclub-stats {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    
+    .fanclub-actions {
+        flex-direction: column;
+    }
+    
+    .fanclub-nav-btn {
+        padding: var(--spacing-sm);
+        font-size: 0.875rem;
+    }
+    
+    .fanclub-tab-content {
+        padding: 0 var(--spacing-md);
+    }
+    
+    .admin-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+    
+    .admin-nav {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+    
+    .admin-posts-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: flex-start;
+    }
+}

@@ -3,7 +3,8 @@ class FanClubApp {
         this.currentUser = null;
         this.currentFanclub = null;
         this.token = localStorage.getItem('auth_token');
-        this.apiBase = '/api';
+        // Vercel環境対応: 本番環境では絶対URLを使用
+        this.apiBase = window.location.hostname === 'localhost' ? '/api' : `${window.location.origin}/api`;
         
         // Rich text editors
         this.initialPostEditor = null;
@@ -13,10 +14,32 @@ class FanClubApp {
     }
 
     async init() {
+        console.log('App init started');
+        
+        // モーダルを確実に非表示にする
+        const authModal = document.getElementById('authModal');
+        if (authModal) {
+            authModal.classList.remove('show');
+            console.log('Modal hidden on init');
+        }
+        
         this.setupEventListeners();
         this.initializeRichEditors();
-        await this.checkAuthStatus();
+        
+        // 初期状態でログイン状態をチェック
+        if (this.token) {
+            await this.checkAuthStatus();
+        } else {
+            this.updateAuthUI(false);
+        }
+        
+        // ファンクラブ一覧を読み込み（エラーハンドリング強化）
         await this.loadFeaturedFanclubs();
+        
+        // トップページを確実に表示
+        this.showPage('topPage');
+        
+        console.log('App init completed');
     }
 
     setupEventListeners() {
@@ -34,16 +57,38 @@ class FanClubApp {
         });
         
         // Auth buttons
-        document.getElementById('loginBtn').addEventListener('click', () => this.showPage('loginPage'));
-        document.getElementById('signupBtn').addEventListener('click', () => this.showPage('signupPage'));
+        document.getElementById('loginBtn').addEventListener('click', () => this.showAuthModal('login'));
+        document.getElementById('signupBtn').addEventListener('click', () => this.showAuthModal('signup'));
         document.getElementById('myPageBtn').addEventListener('click', () => this.showPage('myPage'));
         document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
         
         // Auth forms
         document.getElementById('loginForm').addEventListener('submit', (e) => this.handleLogin(e));
         document.getElementById('signupForm').addEventListener('submit', (e) => this.handleSignup(e));
-        document.getElementById('toSignupBtn').addEventListener('click', () => this.showPage('signupPage'));
-        document.getElementById('toLoginBtn').addEventListener('click', () => this.showPage('loginPage'));
+        
+        // モーダルの閉じるボタン
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+        if (modalCloseBtn) {
+            modalCloseBtn.addEventListener('click', () => this.closeAuthModal());
+        }
+        
+        // タブ切り替えボタン
+        const loginTabBtn = document.getElementById('loginTabBtn');
+        const signupTabBtn = document.getElementById('signupTabBtn');
+        
+        if (loginTabBtn) {
+            loginTabBtn.addEventListener('click', () => {
+                console.log('Login tab clicked');
+                this.switchAuthTab('login');
+            });
+        }
+        
+        if (signupTabBtn) {
+            signupTabBtn.addEventListener('click', () => {
+                console.log('Signup tab clicked');
+                this.switchAuthTab('signup');
+            });
+        }
         
         // Main actions
         document.getElementById('createClubBtn').addEventListener('click', () => this.showCreateFanclub());
@@ -78,7 +123,7 @@ class FanClubApp {
         // Fanclub actions
         document.getElementById('joinFanclubBtn').addEventListener('click', () => this.joinFanclub());
         document.getElementById('leaveFanclubBtn').addEventListener('click', () => this.leaveFanclub());
-        document.getElementById('adminPanelBtn').addEventListener('click', () => this.showPage('adminPage'));
+        document.getElementById('adminPanelBtn').addEventListener('click', () => this.showPage('adminPage'));\n        \n        // New fanclub page functionality\n        this.setupFanclubPageListeners();
     }
 
     initializeRichEditors() {
@@ -117,26 +162,43 @@ class FanClubApp {
     }
 
     async checkAuthStatus() {
-        if (!this.token) return;
+        if (!this.token) {
+            this.updateAuthUI(false);
+            return;
+        }
         
         try {
             const response = await this.apiCall('/user/profile');
             if (response.ok) {
                 this.currentUser = await response.json();
                 this.updateAuthUI(true);
+                // ログイン済みなら常にトップページを表示
+                if (window.location.hash === '#login' || window.location.hash === '#signup') {
+                    this.showPage('topPage');
+                }
             } else {
-                this.logout();
+                this.token = null;
+                localStorage.removeItem('auth_token');
+                this.updateAuthUI(false);
             }
         } catch (error) {
             console.error('Auth check failed:', error);
-            this.logout();
+            this.token = null;
+            localStorage.removeItem('auth_token');
+            this.updateAuthUI(false);
         }
     }
 
     updateAuthUI(isLoggedIn) {
-        document.getElementById('loginBtn').style.display = isLoggedIn ? 'none' : 'inline-flex';
-        document.getElementById('signupBtn').style.display = isLoggedIn ? 'none' : 'inline-flex';
-        document.getElementById('userMenu').style.display = isLoggedIn ? 'flex' : 'none';
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        const userMenu = document.getElementById('userMenu');
+        
+        if (loginBtn) loginBtn.style.display = isLoggedIn ? 'none' : 'inline-flex';
+        if (signupBtn) signupBtn.style.display = isLoggedIn ? 'none' : 'inline-flex';
+        if (userMenu) userMenu.style.display = isLoggedIn ? 'flex' : 'none';
+        
+        console.log('Auth UI updated:', { isLoggedIn, currentUser: this.currentUser });
     }
 
     showPage(pageId) {
@@ -226,7 +288,7 @@ class FanClubApp {
                 this.currentUser = data.user;
                 localStorage.setItem('auth_token', this.token);
                 this.updateAuthUI(true);
-                this.showPage('topPage');
+                this.closeAuthModal();
                 this.showToast('ログインしました', 'success');
                 document.getElementById('loginForm').reset();
             } else {
@@ -265,7 +327,7 @@ class FanClubApp {
                 this.currentUser = data.user;
                 localStorage.setItem('auth_token', this.token);
                 this.updateAuthUI(true);
-                this.showPage('topPage');
+                this.closeAuthModal();
                 this.showToast('アカウントが作成されました', 'success');
                 document.getElementById('signupForm').reset();
             } else {
@@ -415,10 +477,29 @@ class FanClubApp {
     async loadFeaturedFanclubs() {
         try {
             const response = await fetch(`${this.apiBase}/fanclubs`);
+            
+            if (!response.ok) {
+                console.error('API response not ok:', response.status, response.statusText);
+                // デバッグ用: エラーメッセージを表示
+                if (response.status === 404) {
+                    console.error('API endpoint not found. Check server configuration.');
+                }
+                this.renderEmptyFanclubs('featuredClubs');
+                return;
+            }
+            
             const fanclubs = await response.json();
-            this.renderFanclubs(fanclubs.slice(0, 6), 'featuredClubs');
+            
+            if (Array.isArray(fanclubs) && fanclubs.length > 0) {
+                this.renderFanclubs(fanclubs.slice(0, 6), 'featuredClubs');
+            } else {
+                this.renderEmptyFanclubs('featuredClubs');
+            }
         } catch (error) {
             console.error('Failed to load fanclubs:', error);
+            console.error('API Base:', this.apiBase);
+            // エラー時はダミーデータを表示（デバッグ用）
+            this.renderEmptyFanclubs('featuredClubs');
         }
     }
 
@@ -432,8 +513,20 @@ class FanClubApp {
         }
     }
 
+    renderEmptyFanclubs(containerId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.innerHTML = '<p class="text-center" style="padding: 2rem; color: #666;">ファンクラブを読み込み中... または接続エラーが発生しています。</p>';
+        }
+    }
+    
     renderFanclubs(fanclubs, containerId) {
         const container = document.getElementById(containerId);
+        
+        if (!container) {
+            console.error('Container not found:', containerId);
+            return;
+        }
         
         if (fanclubs.length === 0) {
             container.innerHTML = '<p class="text-center">ファンクラブが見つかりませんでした。</p>';
@@ -441,7 +534,7 @@ class FanClubApp {
         }
         
         container.innerHTML = fanclubs.map(fanclub => `
-            <div class="fanclub-card" onclick="app.viewFanclub(${fanclub.id})">
+            <div class="fanclub-card" onclick="app.viewFanclub('${fanclub.id}')">
                 ${fanclub.cover_image_url ? `<img src="${fanclub.cover_image_url}" alt="${fanclub.name}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 16px;">` : ''}
                 <div class="fanclub-card-header">
                     <h3>${fanclub.name}</h3>
@@ -734,14 +827,223 @@ class FanClubApp {
             defaultOptions.headers['Authorization'] = `Bearer ${this.token}`;
         }
         
-        return fetch(this.apiBase + endpoint, {
-            ...defaultOptions,
-            ...options,
-            headers: {
-                ...defaultOptions.headers,
-                ...options.headers,
+        // デバッグ用ログ（Vercel環境の問題特定用）
+        const url = this.apiBase + endpoint;
+        console.log('API Call:', url);
+        
+        try {
+            const response = await fetch(url, {
+                ...defaultOptions,
+                ...options,
+                headers: {
+                    ...defaultOptions.headers,
+                    ...options.headers,
+                },
+            });
+            
+            // エラーレスポンスの詳細をログ
+            if (!response.ok) {
+                console.error('API Error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    url: url
+                });
+            }
+            
+            return response;
+        } catch (error) {
+            console.error('API Call Failed:', {
+                error: error.message,
+                url: url
+            });
+            throw error;
+        }
+    }
+
+    // Fanclub tab functionality
+    showFanclubTab(tabName) {
+        document.querySelectorAll('.fanclub-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.fanclub-tab-content').forEach(content => content.classList.remove('active'));
+        
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        document.getElementById(`fanclub${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Tab`).classList.add('active');
+        
+        if (tabName === 'chat' && this.currentFanclub) {
+            this.loadChatMessages();
+        }
+    }
+
+    // Chat functionality
+    async loadChatMessages() {
+        if (!this.currentFanclub) return;
+        
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInputSection = document.getElementById('chatInputSection');
+        const chatLoginPrompt = document.getElementById('chatLoginPrompt');
+        
+        // Check if user is a member
+        const isMember = await this.checkMembership(this.currentFanclub.id);
+        
+        if (isMember) {
+            chatInputSection.style.display = 'block';
+            chatLoginPrompt.style.display = 'none';
+            this.setupChatEventListeners();
+        } else {
+            chatInputSection.style.display = 'none';
+            chatLoginPrompt.style.display = 'block';
+        }
+        
+        // Load chat messages (mock data for now)
+        this.renderChatMessages([
+            {
+                id: 1,
+                author: 'クリエイター',
+                message: 'ファンクラブへようこそ！気軽に交流しましょう！',
+                timestamp: new Date(Date.now() - 3600000),
+                isOwn: false
             },
+            {
+                id: 2,
+                author: 'ファン1',
+                message: '応援しています！新作楽しみです！',
+                timestamp: new Date(Date.now() - 1800000),
+                isOwn: false
+            }
+        ]);
+    }
+
+    setupChatEventListeners() {
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendChatBtn');
+        
+        if (sendBtn.hasAttribute('data-listener-added')) return;
+        
+        sendBtn.setAttribute('data-listener-added', 'true');
+        sendBtn.addEventListener('click', () => this.sendChatMessage());
+        
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.sendChatMessage();
+            }
         });
+    }
+
+    sendChatMessage() {
+        const chatInput = document.getElementById('chatInput');
+        const message = chatInput.value.trim();
+        
+        if (!message || !this.currentUser) return;
+        
+        const newMessage = {
+            id: Date.now(),
+            author: this.currentUser.nickname,
+            message: message,
+            timestamp: new Date(),
+            isOwn: true
+        };
+        
+        // Add to chat messages
+        const chatMessages = document.getElementById('chatMessages');
+        const existingMessages = Array.from(chatMessages.children).map(child => ({
+            id: parseInt(child.dataset.messageId),
+            author: child.querySelector('.chat-message-author').textContent,
+            message: child.querySelector('.chat-message-text').textContent,
+            timestamp: new Date(child.querySelector('.chat-message-time').textContent),
+            isOwn: child.classList.contains('own')
+        }));
+        
+        existingMessages.push(newMessage);
+        this.renderChatMessages(existingMessages);
+        
+        chatInput.value = '';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    renderChatMessages(messages) {
+        const chatMessages = document.getElementById('chatMessages');
+        
+        chatMessages.innerHTML = messages.map(msg => `
+            <div class="chat-message ${msg.isOwn ? 'own' : ''}" data-message-id="${msg.id}">
+                <div class="chat-message-content">
+                    <div class="chat-message-author">${msg.author}</div>
+                    <div class="chat-message-text">${msg.message}</div>
+                    <div class="chat-message-time">${this.formatChatTime(msg.timestamp)}</div>
+                </div>
+            </div>
+        `).join('');
+        
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    formatChatTime(date) {
+        const now = new Date();
+        const diff = now - date;
+        
+        if (diff < 60000) return 'たった今';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}分前`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}時間前`;
+        
+        return date.toLocaleDateString('ja-JP');
+    }
+
+    async checkMembership(fanclubId) {
+        if (!this.currentUser) return false;
+        
+        try {
+            const response = await this.apiCall(`/fanclubs/${fanclubId}/posts?user_id=${this.currentUser.id}`);
+            return response.ok; // If user can see posts, they're likely a member
+        } catch (error) {
+            return false;
+        }
+    }
+
+    // Auth modal functions
+    showAuthModal(tab = 'login') {
+        const modal = document.getElementById('authModal');
+        modal.classList.add('show');
+        this.switchAuthTab(tab);
+    }
+
+    closeAuthModal() {
+        console.log('Closing auth modal');
+        const modal = document.getElementById('authModal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+    }
+
+    switchAuthTab(tab) {
+        console.log('Switching to tab:', tab);
+        
+        // ログインタブボタン
+        const loginTabBtn = document.getElementById('loginTabBtn');
+        const signupTabBtn = document.getElementById('signupTabBtn');
+        
+        // タブコンテンツ
+        const loginTab = document.getElementById('loginTab');
+        const signupTab = document.getElementById('signupTab');
+        
+        if (tab === 'login') {
+            if (loginTabBtn) {
+                loginTabBtn.classList.add('active');
+                signupTabBtn.classList.remove('active');
+            }
+            if (loginTab) {
+                loginTab.classList.add('active');
+                signupTab.classList.remove('active');
+            }
+        } else if (tab === 'signup') {
+            if (signupTabBtn) {
+                signupTabBtn.classList.add('active');
+                loginTabBtn.classList.remove('active');
+            }
+            if (signupTab) {
+                signupTab.classList.add('active');
+                loginTab.classList.remove('active');
+            }
+        }
+        
+        console.log('Tab switch complete');
     }
 
     showToast(message, type = 'info') {
@@ -760,5 +1062,10 @@ class FanClubApp {
     }
 }
 
-// Initialize the app
-const app = new FanClubApp();
+// Initialize the app when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing app...');
+    const app = new FanClubApp();
+    window.app = app; // グローバルに公開
+    console.log('App initialized');
+});

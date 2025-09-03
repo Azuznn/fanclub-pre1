@@ -45,14 +45,16 @@
 
 ```bash
 # Environment Variables (Vercel Settings)
-JWT_SECRET=your-super-secret-jwt-key-here-generate-random-string
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_ANON_KEY=your-supabase-anon-key
-CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
-CLOUDINARY_API_KEY=your-cloudinary-api-key
-CLOUDINARY_API_SECRET=your-cloudinary-api-secret
+JWT_SECRET=sinnnnkaiowdjnaoiw24
+SUPABASE_URL=https://ejtxolxxgyndhwmljhed.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqdHhvbHh4Z3luZGh3bWxqaGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3ODg5MTksImV4cCI6MjA3MjM2NDkxOX0.Pj9R-0tJSKX4hY2pFNH6Owo43zHc-DUuPn-e1bLvUeQ
+CLOUDINARY_CLOUD_NAME=dnxhpsqhj
+CLOUDINARY_API_KEY=499327321818676
+CLOUDINARY_API_SECRET=V0znBuk0tCyw4pXmP0LsY7kpfEs
 ```
-
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqdHhvbHh4Z3luZGh3bWxqaGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3ODg5MTksImV4cCI6MjA3MjM2NDkxOX0.Pj9R-0tJSKX4hY2pFNH6Owo43zHc-DUuPn-e1bLvUeQ
+https://ejtxolxxgyndhwmljhed.supabase.co
+https://ejtxolxxgyndhwmljhed.supabase.co
 5. デプロイ実行
 
 ---
