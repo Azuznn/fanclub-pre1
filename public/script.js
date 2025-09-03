@@ -2,8 +2,8 @@ class FanClubApp {
     constructor() {
         this.currentUser = null;
         this.currentFanclub = null;
-        // Initialize Mock Supabase client for testing
-        this.supabaseClient = new MockSupabaseClient();
+        // Initialize real Supabase client
+        this.supabaseClient = new SupabaseClient();
         this.token = this.supabaseClient.token;
         
         // Rich text editors
