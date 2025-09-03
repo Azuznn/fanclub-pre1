@@ -3,7 +3,8 @@ class FanClubApp {
         this.currentUser = null;
         this.currentFanclub = null;
         this.token = localStorage.getItem('auth_token');
-        this.apiBase = '/api';
+        // Vercel環境対応: 本番環境では絶対URLを使用
+        this.apiBase = window.location.hostname === 'localhost' ? '/api' : `${window.location.origin}/api`;
         
         // Rich text editors
         this.initialPostEditor = null;
@@ -13,6 +14,12 @@ class FanClubApp {
     }
 
     async init() {
+        // モーダルを確実に非表示にする
+        const authModal = document.getElementById('authModal');
+        if (authModal) {
+            authModal.classList.remove('show');
+        }
+        
         this.setupEventListeners();
         this.initializeRichEditors();
         
@@ -23,7 +30,11 @@ class FanClubApp {
             this.updateAuthUI(false);
         }
         
+        // ファンクラブ一覧を読み込み（エラーハンドリング強化）
         await this.loadFeaturedFanclubs();
+        
+        // トップページを確実に表示
+        this.showPage('topPage');
     }
 
     setupEventListeners() {
@@ -437,10 +448,29 @@ class FanClubApp {
     async loadFeaturedFanclubs() {
         try {
             const response = await fetch(`${this.apiBase}/fanclubs`);
+            
+            if (!response.ok) {
+                console.error('API response not ok:', response.status, response.statusText);
+                // デバッグ用: エラーメッセージを表示
+                if (response.status === 404) {
+                    console.error('API endpoint not found. Check server configuration.');
+                }
+                this.renderEmptyFanclubs('featuredClubs');
+                return;
+            }
+            
             const fanclubs = await response.json();
-            this.renderFanclubs(fanclubs.slice(0, 6), 'featuredClubs');
+            
+            if (Array.isArray(fanclubs) && fanclubs.length > 0) {
+                this.renderFanclubs(fanclubs.slice(0, 6), 'featuredClubs');
+            } else {
+                this.renderEmptyFanclubs('featuredClubs');
+            }
         } catch (error) {
             console.error('Failed to load fanclubs:', error);
+            console.error('API Base:', this.apiBase);
+            // エラー時はダミーデータを表示（デバッグ用）
+            this.renderEmptyFanclubs('featuredClubs');
         }
     }
 
@@ -454,8 +484,20 @@ class FanClubApp {
         }
     }
 
+    renderEmptyFanclubs(containerId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.innerHTML = '<p class="text-center" style="padding: 2rem; color: #666;">ファンクラブを読み込み中... または接続エラーが発生しています。</p>';
+        }
+    }
+    
     renderFanclubs(fanclubs, containerId) {
         const container = document.getElementById(containerId);
+        
+        if (!container) {
+            console.error('Container not found:', containerId);
+            return;
+        }
         
         if (fanclubs.length === 0) {
             container.innerHTML = '<p class="text-center">ファンクラブが見つかりませんでした。</p>';
@@ -756,14 +798,37 @@ class FanClubApp {
             defaultOptions.headers['Authorization'] = `Bearer ${this.token}`;
         }
         
-        return fetch(this.apiBase + endpoint, {
-            ...defaultOptions,
-            ...options,
-            headers: {
-                ...defaultOptions.headers,
-                ...options.headers,
-            },
-        });
+        // デバッグ用ログ（Vercel環境の問題特定用）
+        const url = this.apiBase + endpoint;
+        console.log('API Call:', url);
+        
+        try {
+            const response = await fetch(url, {
+                ...defaultOptions,
+                ...options,
+                headers: {
+                    ...defaultOptions.headers,
+                    ...options.headers,
+                },
+            });
+            
+            // エラーレスポンスの詳細をログ
+            if (!response.ok) {
+                console.error('API Error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    url: url
+                });
+            }
+            
+            return response;
+        } catch (error) {
+            console.error('API Call Failed:', {
+                error: error.message,
+                url: url
+            });
+            throw error;
+        }
     }
 
     // Fanclub tab functionality
