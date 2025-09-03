@@ -41,16 +41,14 @@ class FanClubApp {
         });
         
         // Auth buttons
-        document.getElementById('loginBtn').addEventListener('click', () => this.showPage('loginPage'));
-        document.getElementById('signupBtn').addEventListener('click', () => this.showPage('signupPage'));
+        document.getElementById('loginBtn').addEventListener('click', () => this.showAuthModal('login'));
+        document.getElementById('signupBtn').addEventListener('click', () => this.showAuthModal('signup'));
         document.getElementById('myPageBtn').addEventListener('click', () => this.showPage('myPage'));
         document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
         
         // Auth forms
         document.getElementById('loginForm').addEventListener('submit', (e) => this.handleLogin(e));
         document.getElementById('signupForm').addEventListener('submit', (e) => this.handleSignup(e));
-        document.getElementById('toSignupBtn').addEventListener('click', () => this.showPage('signupPage'));
-        document.getElementById('toLoginBtn').addEventListener('click', () => this.showPage('loginPage'));
         
         // Main actions
         document.getElementById('createClubBtn').addEventListener('click', () => this.showCreateFanclub());
@@ -250,7 +248,7 @@ class FanClubApp {
                 this.currentUser = data.user;
                 localStorage.setItem('auth_token', this.token);
                 this.updateAuthUI(true);
-                this.showPage('topPage');
+                this.closeAuthModal();
                 this.showToast('ログインしました', 'success');
                 document.getElementById('loginForm').reset();
             } else {
@@ -289,7 +287,7 @@ class FanClubApp {
                 this.currentUser = data.user;
                 localStorage.setItem('auth_token', this.token);
                 this.updateAuthUI(true);
-                this.showPage('topPage');
+                this.closeAuthModal();
                 this.showToast('アカウントが作成されました', 'success');
                 document.getElementById('signupForm').reset();
             } else {
@@ -903,6 +901,26 @@ class FanClubApp {
         } catch (error) {
             return false;
         }
+    }
+
+    // Auth modal functions
+    showAuthModal(tab = 'login') {
+        const modal = document.getElementById('authModal');
+        modal.classList.add('show');
+        this.switchAuthTab(tab);
+    }
+
+    closeAuthModal() {
+        const modal = document.getElementById('authModal');
+        modal.classList.remove('show');
+    }
+
+    switchAuthTab(tab) {
+        document.querySelectorAll('.auth-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.auth-tab-content').forEach(content => content.classList.remove('active'));
+        
+        document.querySelector(`[data-auth-tab="${tab}"]`).classList.add('active');
+        document.getElementById(`${tab}Tab`).classList.add('active');
     }
 
     showToast(message, type = 'info') {
