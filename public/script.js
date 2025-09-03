@@ -438,13 +438,25 @@ class FanClubApp {
             
             // Also check registered users from localStorage
             const registeredUsers = JSON.parse(localStorage.getItem('mock_users') || '{}');
-            const allUsers = { ...mockUsers, ...registeredUsers };
             
-            const user = allUsers[email];
+            // Check in mock users first
+            let user = mockUsers[email];
+            let userId = user?.id;
+            let userName = user?.name;
+            
+            // If not found in mock, check registered users
+            if (!user) {
+                user = registeredUsers[email];
+                if (user) {
+                    userId = user.id;
+                    userName = user.nickname || user.name;
+                }
+            }
+            
             if (user && user.password === password) {
                 // Successful login
                 this.token = 'mock_token_' + Date.now();
-                this.currentUser = { id: user.id, email, name: user.name };
+                this.currentUser = { id: userId, email, name: userName };
                 localStorage.setItem('auth_token', this.token);
                 localStorage.setItem('current_user', JSON.stringify(this.currentUser));
                 
@@ -492,6 +504,7 @@ class FanClubApp {
             const newUser = {
                 id: Date.now(),
                 nickname,
+                name: nickname,  // Also store as name for consistency
                 email,
                 phone,
                 password,
@@ -522,6 +535,12 @@ class FanClubApp {
     async handleCreateFanclub(e) {
         e.preventDefault();
         
+        if (!this.currentUser) {
+            this.showToast('ファンクラブを作成するにはログインが必要です', 'error');
+            this.showAuthModal('login');
+            return;
+        }
+        
         const name = document.getElementById('clubName').value;
         const description = document.getElementById('clubDescription').value;
         const monthly_fee = parseInt(document.getElementById('monthlyFee').value) || 0;
@@ -531,41 +550,58 @@ class FanClubApp {
         this.showLoading(true);
         
         try {
-            const response = await this.apiCall('/fanclubs', {
-                method: 'POST',
-                body: JSON.stringify({
-                    name,
-                    description,
-                    monthly_fee,
-                    purpose,
-                    cover_image_url
-                }),
-            });
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            const data = await response.json();
+            // Create fanclub in localStorage
+            const existingFanclubs = JSON.parse(localStorage.getItem('mock_fanclubs') || '[]');
+            const newFanclub = {
+                id: Date.now(),
+                name,
+                description,
+                monthly_fee,
+                purpose,
+                cover_image_url: cover_image_url || 'https://via.placeholder.com/800x400',
+                owner_id: this.currentUser.id,
+                owner_name: this.currentUser.name,
+                member_count: 1,
+                created_at: new Date().toISOString()
+            };
             
-            if (response.ok) {
-                // Create initial post if editor has content
-                if (this.initialPostEditor && this.initialPostEditor.root.innerHTML.trim() !== '<p><br></p>') {
-                    await this.apiCall(`/fanclubs/${data.id}/posts`, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            title: 'ファンクラブ開設のお知らせ',
-                            content: this.initialPostEditor.root.innerHTML,
-                            excerpt: 'ファンクラブを開設しました！',
-                            visibility: 'public'
-                        }),
-                    });
-                }
-                
-                this.showToast('ファンクラブが作成されました！', 'success');
-                document.getElementById('createClubForm').reset();
-                if (this.initialPostEditor) this.initialPostEditor.setContents([]);
-                this.showPage('topPage');
-                this.loadFeaturedFanclubs();
-            } else {
-                this.showToast(data.error, 'error');
+            existingFanclubs.push(newFanclub);
+            localStorage.setItem('mock_fanclubs', JSON.stringify(existingFanclubs));
+            
+            // Create initial post if editor has content
+            if (this.initialPostEditor && this.initialPostEditor.root.innerHTML.trim() !== '<p><br></p>') {
+                const posts = JSON.parse(localStorage.getItem(`fanclub_${newFanclub.id}_posts`) || '[]');
+                posts.push({
+                    id: Date.now(),
+                    title: 'ファンクラブ開設のお知らせ',
+                    content: this.initialPostEditor.root.innerHTML,
+                    excerpt: 'ファンクラブを開設しました！',
+                    visibility: 'public',
+                    author_id: this.currentUser.id,
+                    author_name: this.currentUser.name,
+                    created_at: new Date().toISOString(),
+                    likes: 0
+                });
+                localStorage.setItem(`fanclub_${newFanclub.id}_posts`, JSON.stringify(posts));
             }
+            
+            // Add creator as first member
+            const members = [{
+                user_id: this.currentUser.id,
+                user_name: this.currentUser.name,
+                joined_at: new Date().toISOString(),
+                role: 'owner'
+            }];
+            localStorage.setItem(`fanclub_${newFanclub.id}_members`, JSON.stringify(members));
+            
+            this.showToast('ファンクラブが作成されました！', 'success');
+            document.getElementById('createClubForm').reset();
+            if (this.initialPostEditor) this.initialPostEditor.setContents([]);
+            this.showPage('topPage');
+            this.loadFeaturedFanclubs();
         } catch (error) {
             console.error('Fanclub creation failed:', error);
             this.showToast('ファンクラブ作成に失敗しました', 'error');
