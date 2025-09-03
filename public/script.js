@@ -3,14 +3,62 @@ class FanClubApp {
         this.currentUser = null;
         this.currentFanclub = null;
         this.token = localStorage.getItem('auth_token');
-        // Vercel環境対応: 本番環境では絶対URLを使用
-        this.apiBase = window.location.hostname === 'localhost' ? '/api' : `${window.location.origin}/api`;
+        // API endpoints - currently using mock data (backend not implemented)
+        this.apiBase = '/api'; // Mock API for development
         
         // Rich text editors
         this.initialPostEditor = null;
         this.postContentEditor = null;
         
+        // URL routing
+        this.setupRouting();
         this.init();
+    }
+
+    setupRouting() {
+        // Handle URL hash changes for proper routing
+        window.addEventListener('hashchange', () => this.handleRoute());
+        
+        // Handle initial page load
+        if (window.location.hash) {
+            this.handleRoute();
+        }
+    }
+    
+    handleRoute() {
+        const hash = window.location.hash.substring(1); // Remove #
+        const [page, param] = hash.split('/');
+        
+        console.log('Route changed:', page, param);
+        
+        switch(page) {
+            case 'fanclub':
+                if (param) {
+                    this.showFanclubDetail(param);
+                }
+                break;
+            case 'login':
+                this.showAuthModal('login');
+                break;
+            case 'signup':
+                this.showAuthModal('signup');
+                break;
+            case 'profile':
+                if (this.currentUser) {
+                    this.showPage('myPage');
+                } else {
+                    this.showAuthModal('login');
+                    window.location.hash = '';
+                }
+                break;
+            default:
+                this.showPage('topPage');
+                window.location.hash = '';
+        }
+    }
+    
+    updateURL(path) {
+        window.location.hash = path;
     }
 
     async init() {
@@ -142,6 +190,10 @@ class FanClubApp {
         
         // New fanclub page functionality
         this.setupFanclubPageListeners();
+        
+        // Password change form
+        const passwordForm = document.getElementById('passwordChangeForm');
+        if (passwordForm) passwordForm.addEventListener('submit', (e) => this.handlePasswordChange(e));
     }
 
     initializeRichEditors() {
@@ -230,6 +282,69 @@ class FanClubApp {
             this.loadUserProfile();
         }
     }
+    
+    loadUserProfile() {
+        if (this.currentUser) {
+            const nameEl = document.getElementById('profileName');
+            const emailEl = document.getElementById('profileEmail');
+            
+            if (nameEl) nameEl.textContent = this.currentUser.name || 'ユーザー';
+            if (emailEl) emailEl.textContent = this.currentUser.email || 'メールアドレス不明';
+        }
+    }
+    
+    async handlePasswordChange(e) {
+        e.preventDefault();
+        
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            this.showToast('すべてのフィールドを入力してください', 'error');
+            return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+            this.showToast('新しいパスワードが一致しません', 'error');
+            return;
+        }
+        
+        if (newPassword.length < 6) {
+            this.showToast('パスワードは6文字以上で入力してください', 'error');
+            return;
+        }
+        
+        this.showLoading(true);
+        
+        try {
+            // Mock password change
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Check current password (mock)
+            const storedUsers = JSON.parse(localStorage.getItem('mock_users') || '{}');
+            const user = storedUsers[this.currentUser.email];
+            
+            if (!user || user.password !== currentPassword) {
+                this.showToast('現在のパスワードが間違っています', 'error');
+                return;
+            }
+            
+            // Update password
+            user.password = newPassword;
+            storedUsers[this.currentUser.email] = user;
+            localStorage.setItem('mock_users', JSON.stringify(storedUsers));
+            
+            document.getElementById('passwordChangeForm').reset();
+            this.showToast('パスワードが変更されました', 'success');
+            
+        } catch (error) {
+            console.error('Password change failed:', error);
+            this.showToast('パスワード変更に失敗しました', 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
 
     showCreateFanclub() {
         if (!this.currentUser) {
@@ -288,29 +403,38 @@ class FanClubApp {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
         
+        if (!email || !password) {
+            this.showToast('メールアドレスとパスワードを入力してください', 'error');
+            return;
+        }
+        
         this.showLoading(true);
         
         try {
-            const response = await fetch(`${this.apiBase}/auth/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
+            // Mock login - simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            const data = await response.json();
+            // Mock users for demo
+            const mockUsers = {
+                'test@example.com': { password: 'password', name: 'テストユーザー', id: 1 },
+                'admin@fanclub.com': { password: 'admin123', name: '管理者', id: 2 },
+                'user@demo.jp': { password: 'demo', name: 'デモユーザー', id: 3 }
+            };
             
-            if (response.ok) {
-                this.token = data.token;
-                this.currentUser = data.user;
+            const user = mockUsers[email];
+            if (user && user.password === password) {
+                // Successful login
+                this.token = 'mock_token_' + Date.now();
+                this.currentUser = { id: user.id, email, name: user.name };
                 localStorage.setItem('auth_token', this.token);
+                localStorage.setItem('current_user', JSON.stringify(this.currentUser));
+                
                 this.updateAuthUI(true);
                 this.closeAuthModal();
                 this.showToast('ログインしました', 'success');
-                document.getElementById('loginForm').reset();
+                this.updateURL('profile');
             } else {
-                this.showToast(data.error, 'error');
+                this.showToast('メールアドレスまたはパスワードが間違っています', 'error');
             }
         } catch (error) {
             console.error('Login failed:', error);
@@ -327,30 +451,47 @@ class FanClubApp {
         const phone = document.getElementById('signupPhone').value;
         const password = document.getElementById('signupPassword').value;
         
+        if (!nickname || !email || !password) {
+            this.showToast('必須項目を入力してください', 'error');
+            return;
+        }
+        
         this.showLoading(true);
         
         try {
-            const response = await fetch(`${this.apiBase}/auth/signup`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ nickname, email, phone, password }),
-            });
+            // Mock signup - simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            const data = await response.json();
-            
-            if (response.ok) {
-                this.token = data.token;
-                this.currentUser = data.user;
-                localStorage.setItem('auth_token', this.token);
-                this.updateAuthUI(true);
-                this.closeAuthModal();
-                this.showToast('アカウントが作成されました', 'success');
-                document.getElementById('signupForm').reset();
-            } else {
-                this.showToast(data.error, 'error');
+            // Check if user already exists (mock check)
+            const existingUsers = JSON.parse(localStorage.getItem('mock_users') || '{}');
+            if (existingUsers[email]) {
+                this.showToast('このメールアドレスは既に登録されています', 'error');
+                return;
             }
+            
+            // Create new mock user
+            const newUser = {
+                id: Date.now(),
+                nickname,
+                email,
+                phone,
+                password,
+                created_at: new Date().toISOString()
+            };
+            
+            existingUsers[email] = newUser;
+            localStorage.setItem('mock_users', JSON.stringify(existingUsers));
+            
+            // Auto login after signup
+            this.token = 'mock_token_' + Date.now();
+            this.currentUser = { id: newUser.id, email, name: nickname };
+            localStorage.setItem('auth_token', this.token);
+            localStorage.setItem('current_user', JSON.stringify(this.currentUser));
+            
+            this.updateAuthUI(true);
+            this.closeAuthModal();
+            this.showToast('アカウントが作成されました', 'success');
+            this.updateURL('profile');
         } catch (error) {
             console.error('Signup failed:', error);
             this.showToast('アカウント作成に失敗しました', 'error');
@@ -611,16 +752,8 @@ class FanClubApp {
                 card.addEventListener('click', () => {
                     const fanclubId = card.dataset.fanclubId;
                     console.log('Fanclub card clicked, ID:', fanclubId);
-                    // showFanclubDetail method is in fanclub-functions.js, should be available
-                    if (window.app && window.app.showFanclubDetail) {
-                        window.app.showFanclubDetail(fanclubId);
-                    } else if (this.showFanclubDetail) {
-                        this.showFanclubDetail(fanclubId);
-                    } else {
-                        console.error('showFanclubDetail method not found', this);
-                        // Fallback: try to call viewFanclub
-                        this.viewFanclub(fanclubId);
-                    }
+                    // Update URL and navigate to fanclub
+                    this.updateURL(`fanclub/${fanclubId}`);
                 });
             });
         }, 100);
