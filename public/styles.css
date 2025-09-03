@@ -6,15 +6,16 @@
 }
 
 :root {
-    /* FAMILY CLUB inspired color palette */
-    --color-primary: #3BAEC6;
-    --color-primary-dark: #0081CC;
-    --color-primary-light: #76C6D7;
-    --color-secondary: #231F20;
-    --color-accent: #FF6B6B;
-    --color-warning: #FFB017;
-    --color-success: #10B981;
-    --color-error: #EF4444;
+    /* FAMILY CLUB inspired POP color palette */
+    --color-primary: #01D3D9;
+    --color-primary-dark: #00A8AE;
+    --color-primary-light: #63E1E5;
+    --color-secondary: #FF8C9F;
+    --color-secondary-light: #FFBAC6;
+    --color-accent: #FFD700;
+    --color-warning: #FF8C00;
+    --color-success: #32CD32;
+    --color-error: #FF4500;
     
     /* Neutral colors */
     --color-text-primary: #2D3748;
@@ -62,11 +63,12 @@
 }
 
 body {
-    font-family: 'Yu Gothic Medium', YuGothicMedium, '游ゴシック体', YuGothic, '游ゴシック', 'メイリオ', sans-serif;
-    line-height: 1.6;
-    color: var(--color-text-primary);
-    background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);
+    font-family: "Noto Sans JP", 'Yu Gothic Medium', YuGothicMedium, '游ゴシック体', YuGothic, '游ゴシック', 'メイリオ', sans-serif;
+    line-height: 1.75;
+    color: #000;
+    background: #f7f5e9;
     font-size: 16px;
+    font-weight: 500;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -461,16 +463,20 @@ body {
     display: inline-flex;
     align-items: center;
     gap: var(--spacing-xs);
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: none;
-    border-radius: var(--radius-md);
-    font-size: 0.975rem;
-    font-weight: 600;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: 2px solid #000;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 700;
     text-decoration: none;
     cursor: pointer;
-    transition: var(--transition-base);
+    transition: all 0.3s ease;
     white-space: nowrap;
-    line-height: 1;
+    line-height: 1.25;
+    letter-spacing: 0.1em;
+    position: relative;
+    background: #fff;
+    min-height: 48px;
 }
 
 .btn:disabled {
@@ -480,25 +486,62 @@ body {
 
 .btn-primary {
     background: var(--color-primary);
-    color: white;
+    color: #000;
+}
+
+.btn-primary::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 2px;
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    border: 2px solid #000;
+    border-radius: 50px;
+    z-index: -1;
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: var(--color-primary-dark);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+    background: var(--color-primary-light);
+    transform: translate(2px, 3px);
+}
+
+.btn-primary:hover:not(:disabled)::after {
+    background: transparent;
+    top: -2px;
+    left: -2px;
 }
 
 .btn-outline {
-    background: transparent;
-    color: var(--color-primary);
-    border: 2px solid var(--color-primary);
+    background: #fff;
+    color: #000;
+    border: 2px solid #000;
+}
+
+.btn-outline::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 2px;
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    border: 2px solid #000;
+    border-radius: 50px;
+    z-index: -1;
 }
 
 .btn-outline:hover:not(:disabled) {
-    background: var(--color-primary);
-    color: white;
-    transform: translateY(-1px);
+    background: var(--color-secondary);
+    color: #000;
+    transform: translate(2px, 3px);
+}
+
+.btn-outline:hover:not(:disabled)::after {
+    background: transparent;
+    top: -2px;
+    left: -2px;
 }
 
 .header-actions .btn-outline {

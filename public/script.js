@@ -234,7 +234,7 @@ class FanClubApp {
     showCreateFanclub() {
         if (!this.currentUser) {
             this.showToast('ファンクラブを作成するにはログインが必要です', 'warning');
-            this.showPage('loginPage');
+            this.showAuthModal('signup');
             return;
         }
         this.showPage('createClubPage');
