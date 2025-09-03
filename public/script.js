@@ -34,7 +34,9 @@ class FanClubApp {
         }
         
         // ファンクラブ一覧を読み込み（エラーハンドリング強化）
+        console.log('Loading featured fanclubs...');
         await this.loadFeaturedFanclubs();
+        console.log('Featured fanclubs loaded');
         
         // トップページを確実に表示
         this.showPage('topPage');
@@ -57,14 +59,22 @@ class FanClubApp {
         });
         
         // Auth buttons
-        document.getElementById('loginBtn').addEventListener('click', () => this.showAuthModal('login'));
-        document.getElementById('signupBtn').addEventListener('click', () => this.showAuthModal('signup'));
-        document.getElementById('myPageBtn').addEventListener('click', () => this.showPage('myPage'));
-        document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        const myPageBtn = document.getElementById('myPageBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        
+        if (loginBtn) loginBtn.addEventListener('click', () => this.showAuthModal('login'));
+        if (signupBtn) signupBtn.addEventListener('click', () => this.showAuthModal('signup'));
+        if (myPageBtn) myPageBtn.addEventListener('click', () => this.showPage('myPage'));
+        if (logoutBtn) logoutBtn.addEventListener('click', () => this.logout());
         
         // Auth forms
-        document.getElementById('loginForm').addEventListener('submit', (e) => this.handleLogin(e));
-        document.getElementById('signupForm').addEventListener('submit', (e) => this.handleSignup(e));
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+        
+        if (loginForm) loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+        if (signupForm) signupForm.addEventListener('submit', (e) => this.handleSignup(e));
         
         // モーダルの閉じるボタン
         const modalCloseBtn = document.getElementById('modalCloseBtn');
@@ -91,8 +101,13 @@ class FanClubApp {
         }
         
         // Main actions
-        document.getElementById('createClubBtn').addEventListener('click', () => this.showCreateFanclub());
-        document.getElementById('exploreClubBtn').addEventListener('click', () => this.showPage('searchPage'));
+        const createClubBtn = document.getElementById('createClubBtn');
+        const exploreClubBtn = document.getElementById('exploreClubBtn');
+        const moreClubsBtn = document.getElementById('moreClubsBtn');
+        
+        if (createClubBtn) createClubBtn.addEventListener('click', () => this.showCreateFanclub());
+        if (exploreClubBtn) exploreClubBtn.addEventListener('click', () => this.showPage('searchPage'));
+        if (moreClubsBtn) moreClubsBtn.addEventListener('click', () => this.showPage('searchPage'));
         
         // Forms
         document.getElementById('createClubForm').addEventListener('submit', (e) => this.handleCreateFanclub(e));
@@ -123,7 +138,10 @@ class FanClubApp {
         // Fanclub actions
         document.getElementById('joinFanclubBtn').addEventListener('click', () => this.joinFanclub());
         document.getElementById('leaveFanclubBtn').addEventListener('click', () => this.leaveFanclub());
-        document.getElementById('adminPanelBtn').addEventListener('click', () => this.showPage('adminPage'));\n        \n        // New fanclub page functionality\n        this.setupFanclubPageListeners();
+        document.getElementById('adminPanelBtn').addEventListener('click', () => this.showPage('adminPage'));
+        
+        // New fanclub page functionality
+        this.setupFanclubPageListeners();
     }
 
     initializeRichEditors() {
@@ -475,7 +493,9 @@ class FanClubApp {
     }
 
     async loadFeaturedFanclubs() {
+        console.log('loadFeaturedFanclubs called');
         try {
+            console.log('Fetching from:', `${this.apiBase}/fanclubs`);
             const response = await fetch(`${this.apiBase}/fanclubs`);
             
             if (!response.ok) {
@@ -499,6 +519,7 @@ class FanClubApp {
             console.error('Failed to load fanclubs:', error);
             console.error('API Base:', this.apiBase);
             // エラー時はダミーデータを表示（デバッグ用）
+            console.log('Showing dummy data due to API error');
             this.renderEmptyFanclubs('featuredClubs');
         }
     }
