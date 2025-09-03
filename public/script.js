@@ -74,20 +74,42 @@ class FanClubApp {
         this.setupEventListeners();
         this.initializeRichEditors();
         
+        // グローバル参照を設定（Supabaseクライアントからアクセス可能にする）
+        window.app = this;
+        
         // 初期状態でログイン状態をチェック
         if (this.token) {
             try {
-                const user = await this.supabaseClient.getCurrentUser();
-                if (user) {
-                    this.currentUser = user;
+                // まずlocalStorageからユーザー情報を復元
+                const savedUser = localStorage.getItem('current_user');
+                if (savedUser) {
+                    this.currentUser = JSON.parse(savedUser);
+                    console.log('User restored from localStorage:', this.currentUser);
                     this.updateAuthUI(true);
-                    // 参加中のファンクラブを読み込み
-                    this.loadJoinedFanclubs();
+                    
+                    // Supabaseで現在のユーザー情報を検証
+                    const user = await this.supabaseClient.getCurrentUser();
+                    if (user) {
+                        // サーバーからの最新情報で更新
+                        this.currentUser = user;
+                        localStorage.setItem('current_user', JSON.stringify(this.currentUser));
+                        // 参加中のファンクラブを読み込み
+                        this.loadJoinedFanclubs();
+                    }
                 } else {
-                    // トークンが無効な場合
-                    this.supabaseClient.setToken(null);
-                    localStorage.removeItem('current_user');
-                    this.updateAuthUI(false);
+                    // localStorageにユーザー情報がない場合、Supabaseから取得
+                    const user = await this.supabaseClient.getCurrentUser();
+                    if (user) {
+                        this.currentUser = user;
+                        localStorage.setItem('current_user', JSON.stringify(this.currentUser));
+                        this.updateAuthUI(true);
+                        this.loadJoinedFanclubs();
+                    } else {
+                        // トークンが無効な場合
+                        this.supabaseClient.setToken(null);
+                        localStorage.removeItem('current_user');
+                        this.updateAuthUI(false);
+                    }
                 }
             } catch (error) {
                 console.error('Error checking auth status:', error);
@@ -296,20 +318,18 @@ class FanClubApp {
         // Load data when showing specific pages
         if (pageId === 'searchPage') {
             this.loadAllFanclubs();
-        } else if (pageId === 'myPage' && this.currentUser) {
-            this.loadUserProfile();
+        } else if (pageId === 'myPage') {
+            // マイページ表示時にプロフィールを読み込み、タブを初期化
+            if (this.currentUser) {
+                this.loadUserProfile();
+                this.switchTab(document.querySelector('.tab-btn[data-tab="profile"]'));
+            } else {
+                this.showAuthModal('login');
+            }
         }
     }
     
-    loadUserProfile() {
-        if (this.currentUser) {
-            const nameEl = document.getElementById('profileName');
-            const emailEl = document.getElementById('profileEmail');
-            
-            if (nameEl) nameEl.textContent = this.currentUser.name || 'ユーザー';
-            if (emailEl) emailEl.textContent = this.currentUser.email || 'メールアドレス不明';
-        }
-    }
+    // This loadUserProfile method is replaced by the one at line 1032
     
     async handlePasswordChange(e) {
         e.preventDefault();
@@ -1030,11 +1050,32 @@ class FanClubApp {
     }
 
     loadUserProfile() {
-        if (!this.currentUser) return;
+        console.log('Loading user profile:', this.currentUser);
+        if (!this.currentUser) {
+            console.log('No current user found');
+            return;
+        }
         
-        document.getElementById('profileNickname').value = this.currentUser.nickname;
-        document.getElementById('profileEmail').value = this.currentUser.email;
-        document.getElementById('profilePhone').value = this.currentUser.phone || '';
+        const nicknameEl = document.getElementById('profileNickname');
+        const emailEl = document.getElementById('profileEmail');
+        const phoneEl = document.getElementById('profilePhone');
+        
+        if (nicknameEl) {
+            // Check multiple possible property names
+            nicknameEl.value = this.currentUser.nickname || this.currentUser.name || '';
+        }
+        if (emailEl) {
+            emailEl.value = this.currentUser.email || '';
+        }
+        if (phoneEl) {
+            phoneEl.value = this.currentUser.phone || '';
+        }
+        
+        console.log('Profile loaded with values:', {
+            nickname: this.currentUser.nickname || this.currentUser.name,
+            email: this.currentUser.email,
+            phone: this.currentUser.phone
+        });
     }
 
     async toggleLike(postId) {

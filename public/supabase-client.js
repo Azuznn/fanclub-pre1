@@ -16,12 +16,18 @@ class SupabaseClient {
             },
         };
         
+        // 最新のトークンを取得
+        this.token = localStorage.getItem('auth_token');
+        
         if (this.token) {
             defaultOptions.headers['Authorization'] = `Bearer ${this.token}`;
+            console.log('Using token:', this.token.substring(0, 20) + '...');
+        } else {
+            console.log('No token available');
         }
         
         const url = this.apiBase + endpoint;
-        console.log('API Call:', url);
+        console.log('API Call:', url, 'Method:', options.method || 'GET');
         
         try {
             const response = await fetch(url, {
@@ -33,16 +39,27 @@ class SupabaseClient {
                 },
             });
             
+            console.log('API Response:', response.status, response.statusText);
+            
             if (!response.ok && response.status === 401) {
+                console.error('Token expired or invalid');
                 // トークンが無効な場合、ログアウト処理
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('current_user');
                 this.token = null;
+                // ログインページへリダイレクトを検討
+                if (window.app && typeof window.app.showAuthModal === 'function') {
+                    window.app.showAuthModal('login');
+                }
             }
             
             return response;
         } catch (error) {
-            console.error('API Call Failed:', error);
+            console.error('API Call Failed:', {
+                endpoint,
+                error: error.message,
+                url
+            });
             throw error;
         }
     }
@@ -85,20 +102,54 @@ class SupabaseClient {
     }
 
     async getCurrentUser() {
-        if (!this.token) return null;
-        
-        const response = await this.apiCall('/auth/user');
-        if (response.ok) {
-            return await response.json();
+        if (!this.token) {
+            console.log('getCurrentUser: No token available');
+            return null;
         }
-        return null;
+        
+        try {
+            const response = await this.apiCall('/auth/user');
+            if (response.ok) {
+                const userData = await response.json();
+                console.log('getCurrentUser success:', userData);
+                return userData;
+            } else {
+                console.error('getCurrentUser failed:', response.status);
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+                return null;
+            }
+        } catch (error) {
+            console.error('getCurrentUser error:', error);
+            return null;
+        }
     }
 
     async createFanclub(fanclubData) {
-        return await this.apiCall('/fanclubs', {
-            method: 'POST',
-            body: JSON.stringify(fanclubData),
-        });
+        console.log('Creating fanclub with data:', fanclubData);
+        console.log('Current token:', this.token ? 'Present' : 'Missing');
+        
+        if (!this.token) {
+            console.error('No authentication token for fanclub creation');
+            throw new Error('Authentication required');
+        }
+        
+        try {
+            const response = await this.apiCall('/fanclubs', {
+                method: 'POST',
+                body: JSON.stringify(fanclubData),
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.text();
+                console.error('Fanclub creation failed:', response.status, errorData);
+            }
+            
+            return response;
+        } catch (error) {
+            console.error('Fanclub creation error:', error);
+            throw error;
+        }
     }
 
     async getFanclubs() {
