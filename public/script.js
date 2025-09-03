@@ -514,10 +514,35 @@ class FanClubApp {
     }
 
     renderEmptyFanclubs(containerId) {
-        const container = document.getElementById(containerId);
-        if (container) {
-            container.innerHTML = '<p class="text-center" style="padding: 2rem; color: #666;">ファンクラブを読み込み中... または接続エラーが発生しています。</p>';
-        }
+        // 開発中はダミーデータを表示
+        const dummyFanclubs = [
+            {
+                id: 1,
+                name: "アーティストAファンクラブ",
+                description: "音楽とアートの世界を一緒に楽しみましょう！",
+                member_count: 150,
+                monthly_fee: 1500,
+                cover_image_url: "https://via.placeholder.com/400x200/3BAEC6/white?text=Artist+A"
+            },
+            {
+                id: 2,
+                name: "クリエイターBサポーターズ",
+                description: "創作活動を応援する仲間たちのコミュニティです。",
+                member_count: 89,
+                monthly_fee: 800,
+                cover_image_url: "https://via.placeholder.com/400x200/FF6B6B/white?text=Creator+B"
+            },
+            {
+                id: 3,
+                name: "配信者Cのファンルーム",
+                description: "楽しい配信と限定コンテンツをお楽しみください。",
+                member_count: 234,
+                monthly_fee: 1200,
+                cover_image_url: "https://via.placeholder.com/400x200/10B981/white?text=Streamer+C"
+            }
+        ];
+        
+        this.renderFanclubs(dummyFanclubs, containerId);
     }
     
     renderFanclubs(fanclubs, containerId) {
@@ -534,7 +559,7 @@ class FanClubApp {
         }
         
         container.innerHTML = fanclubs.map(fanclub => `
-            <div class="fanclub-card" onclick="app.viewFanclub('${fanclub.id}')">
+            <div class="fanclub-card" onclick="app.showFanclubDetail('${fanclub.id}')">
                 ${fanclub.cover_image_url ? `<img src="${fanclub.cover_image_url}" alt="${fanclub.name}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 16px;">` : ''}
                 <div class="fanclub-card-header">
                     <h3>${fanclub.name}</h3>
