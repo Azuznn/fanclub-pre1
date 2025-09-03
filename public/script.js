@@ -775,6 +775,10 @@ class FanClubApp {
                     console.log('Fanclub card clicked, ID:', fanclubId);
                     // Update URL and navigate to fanclub
                     this.updateURL(`fanclub/${fanclubId}`);
+                    // Also directly call showFanclubDetail
+                    if (typeof this.showFanclubDetail === 'function') {
+                        this.showFanclubDetail(fanclubId);
+                    }
                 });
             });
         }, 100);
@@ -1043,18 +1047,30 @@ class FanClubApp {
 
     loadUserProfile() {
         console.log('Loading user profile:', this.currentUser);
+        
+        // Also try to load from localStorage if currentUser is not available
         if (!this.currentUser) {
-            console.log('No current user found');
-            return;
+            const savedUser = localStorage.getItem('current_user');
+            if (savedUser) {
+                this.currentUser = JSON.parse(savedUser);
+                console.log('User loaded from localStorage:', this.currentUser);
+            } else {
+                console.log('No current user found');
+                return;
+            }
         }
         
         const nicknameEl = document.getElementById('profileNickname');
         const emailEl = document.getElementById('profileEmail');
         const phoneEl = document.getElementById('profilePhone');
         
+        console.log('Profile elements found:', { nicknameEl: !!nicknameEl, emailEl: !!emailEl, phoneEl: !!phoneEl });
+        
         if (nicknameEl) {
             // Check multiple possible property names
-            nicknameEl.value = this.currentUser.nickname || this.currentUser.name || '';
+            const nickname = this.currentUser.nickname || this.currentUser.name || '';
+            nicknameEl.value = nickname;
+            console.log('Set nickname to:', nickname);
         }
         if (emailEl) {
             emailEl.value = this.currentUser.email || '';

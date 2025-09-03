@@ -239,10 +239,15 @@ Object.assign(FanClubApp.prototype, {
         
         const title = document.getElementById('postTitle')?.value;
         const excerpt = document.getElementById('postExcerpt')?.value;
-        const visibility = document.getElementById('postVisibility')?.value;
+        const visibility = document.getElementById('postVisibility')?.value || 'public';
         
         if (!title) {
             this.showToast('タイトルを入力してください', 'error');
+            return;
+        }
+        
+        if (!this.currentFanclub) {
+            this.showToast('ファンクラブが選択されていません', 'error');
             return;
         }
         
@@ -253,9 +258,32 @@ Object.assign(FanClubApp.prototype, {
         
         const content = this.postContentEditor.root.innerHTML;
         
-        // For now, just show a placeholder message
-        this.showToast('記事投稿機能は開発中です', 'info');
-        console.log('Post data:', { title, excerpt, content, visibility });
+        this.showLoading(true);
+        
+        try {
+            const response = await this.supabaseClient.createPost(this.currentFanclub.id, {
+                title,
+                excerpt: excerpt || title,
+                content,
+                visibility
+            });
+            
+            if (response.ok) {
+                this.showToast('記事を投稿しました', 'success');
+                this.closePostModal();
+                // Reload posts to show the new one
+                await this.loadFanclubPosts(this.currentFanclub.id);
+            } else {
+                const error = await response.text();
+                this.showToast('記事の投稿に失敗しました', 'error');
+                console.error('Post creation failed:', error);
+            }
+        } catch (error) {
+            console.error('Post submission error:', error);
+            this.showToast('記事の投稿に失敗しました', 'error');
+        } finally {
+            this.showLoading(false);
+        }
     },
     
     async handleChatSubmit(e) {
@@ -371,13 +399,16 @@ Object.assign(FanClubApp.prototype, {
         container.innerHTML = messages.map(msg => {
             const isOwn = this.currentUser && msg.user_id === this.currentUser.id;
             const isSystem = msg.user_id === 'system';
+            const isOwner = this.currentFanclub && this.currentUser && this.currentFanclub.owner_id === this.currentUser.id;
+            const canDelete = isOwn || (isOwner && !isSystem);
             
             return `
-                <div class="chat-message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''}">
+                <div class="chat-message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''}" data-message-id="${msg.id}">
                     <div class="chat-message-content">
                         <div class="chat-message-author">${msg.user_name}</div>
                         <div class="chat-message-text">${msg.message}</div>
                         <div class="chat-message-time">${msg.created_at}</div>
+                        ${canDelete ? `<button class="chat-delete-btn" onclick="app.deleteChatMessage('${fanclubId}', '${msg.id}')" style="background: #ff4757; color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; margin-left: 8px; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'"><i class="fas fa-trash"></i></button>` : ''}
                     </div>
                 </div>
             `;
@@ -388,6 +419,26 @@ Object.assign(FanClubApp.prototype, {
         
         // Update chat visibility
         this.updateChatInputVisibility();
+    },
+    
+    async deleteChatMessage(fanclubId, messageId) {
+        if (!confirm('このメッセージを削除しますか？')) {
+            return;
+        }
+        
+        const chatKey = `fanclub_chat_${fanclubId}`;
+        let messages = JSON.parse(localStorage.getItem(chatKey) || '[]');
+        
+        // Remove the message
+        messages = messages.filter(msg => msg.id != messageId);
+        
+        // Save back to localStorage
+        localStorage.setItem(chatKey, JSON.stringify(messages));
+        
+        // Reload the chat to show updated messages
+        await this.loadChatMessages(fanclubId);
+        
+        this.showToast('メッセージを削除しました', 'success');
     },
     
     async loadAdminPosts() {
