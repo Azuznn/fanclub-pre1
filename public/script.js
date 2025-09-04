@@ -337,15 +337,12 @@ class FanClubApp {
     
     async handleProfileUpdate(e) {
         e.preventDefault();
-        console.log('=== handleProfileUpdate START ===');
         
         const nickname = document.getElementById('profileNickname').value;
         const email = document.getElementById('profileEmail').value;
         const phone = document.getElementById('profilePhone').value;
         const newPassword = document.getElementById('newPassword').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
-        
-        console.log('Form data:', { nickname, email, phone, hasNewPassword: !!newPassword });
         
         if (!nickname || !email) {
             this.showToast('ニックネームとメールアドレスは必須です', 'error');
@@ -356,11 +353,7 @@ class FanClubApp {
         
         try {
             // プロフィール更新
-            const apiUrl = `${this.supabaseClient.apiBase}/auth/update-profile`;
-            console.log('Calling API:', apiUrl);
-            console.log('Token:', this.supabaseClient.token ? 'Present' : 'Missing');
-            
-            const profileResponse = await fetch(apiUrl, {
+            const profileResponse = await fetch(`${this.supabaseClient.apiBase}/auth/update-profile`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
