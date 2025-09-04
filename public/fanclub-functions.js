@@ -47,27 +47,51 @@ Object.assign(FanClubApp.prototype, {
     
     // Show fanclub detail page
     async showFanclubDetail(fanclubId) {
-        console.log('showFanclubDetail called with ID:', fanclubId);
+        console.log('=== showFanclubDetail START ===');
+        console.log('Fanclub ID:', fanclubId);
+        console.log('supabaseClient exists:', !!this.supabaseClient);
+        console.log('showPage function exists:', typeof this.showPage);
+        
         try {
             this.showLoading(true);
             
             // Supabaseからファンクラブ情報を取得
+            console.log('Fetching fanclub from API...');
             const response = await this.supabaseClient.getFanclub(fanclubId);
+            console.log('API Response status:', response.status);
             
             if (response.ok) {
                 const fanclub = await response.json();
+                console.log('Fanclub data received:', fanclub);
                 this.currentFanclub = fanclub;
+                
+                console.log('Rendering fanclub detail...');
                 this.renderFanclubDetail(fanclub);
+                
+                console.log('Loading posts...');
                 await this.loadFanclubPosts(fanclubId);
+                
+                console.log('Loading chat messages...');
                 await this.loadChatMessages(fanclubId);
+                
+                console.log('Updating buttons...');
                 this.updateFanclubButtons();
+                
+                console.log('Showing fanclub page...');
+                const fanclubPageElement = document.getElementById('fanclubPage');
+                console.log('fanclubPage element exists:', !!fanclubPageElement);
+                
                 this.showPage('fanclubPage');
-                console.log('Fanclub page should now be visible');
+                console.log('=== showFanclubDetail COMPLETE ===');
             } else {
+                const errorText = await response.text();
+                console.error('Fanclub not found. Response:', errorText);
                 this.showToast('ファンクラブが見つかりません', 'error');
             }
         } catch (error) {
-            console.error('Failed to load fanclub:', error);
+            console.error('=== showFanclubDetail ERROR ===');
+            console.error('Error details:', error);
+            console.error('Stack trace:', error.stack);
             this.showToast('ファンクラブの読み込みに失敗しました', 'error');
         } finally {
             this.showLoading(false);
@@ -101,6 +125,8 @@ Object.assign(FanClubApp.prototype, {
     },
     
     switchFanclubTab(tabName) {
+        console.log('switchFanclubTab called with:', tabName);
+        
         // Hide all tab contents
         document.querySelectorAll('.fanclub-tab-content').forEach(tab => {
             tab.classList.remove('active');
@@ -112,14 +138,37 @@ Object.assign(FanClubApp.prototype, {
         });
         
         // Show selected tab and activate button
-        const targetTab = document.getElementById(tabName + 'Tab');
+        // Try multiple ID patterns to handle inconsistent naming
+        const possibleIds = [
+            tabName + 'Tab',                    // e.g., chatTab
+            'fanclub' + tabName.charAt(0).toUpperCase() + tabName.slice(1) + 'Tab'  // e.g., fanclubChatTab
+        ];
+        
+        let targetTab = null;
+        for (const id of possibleIds) {
+            targetTab = document.getElementById(id);
+            if (targetTab) {
+                console.log('Found tab with ID:', id);
+                break;
+            }
+        }
+        
         const targetBtn = document.querySelector(`[data-tab="${tabName}"]`);
         
-        if (targetTab) targetTab.classList.add('active');
+        if (targetTab) {
+            targetTab.classList.add('active');
+        } else {
+            console.error('Tab not found for:', tabName);
+        }
+        
         if (targetBtn) targetBtn.classList.add('active');
         
-        // Update chat input visibility
+        // Update chat input visibility and load messages
         if (tabName === 'chat') {
+            console.log('Chat tab selected, loading messages...');
+            if (this.currentFanclub) {
+                this.loadChatMessages(this.currentFanclub.id);
+            }
             this.updateChatInputVisibility();
         }
     },
@@ -365,11 +414,26 @@ Object.assign(FanClubApp.prototype, {
     },
     
     async loadChatMessages(fanclubId) {
+        console.log('=== loadChatMessages START ===');
+        console.log('Fanclub ID:', fanclubId);
+        
         const container = document.getElementById('chatMessages');
-        if (!container) return;
+        if (!container) {
+            console.error('Chat container not found!');
+            // Try alternate container ID
+            const altContainer = document.querySelector('.chat-messages');
+            if (altContainer) {
+                console.log('Found alternate container');
+                container = altContainer;
+            } else {
+                return;
+            }
+        }
         
         try {
+            console.log('Fetching chat messages from API...');
             const response = await this.supabaseClient.getChatMessages(fanclubId);
+            console.log('Chat API response:', response.status);
             let messages = [];
             
             if (response.ok) {
