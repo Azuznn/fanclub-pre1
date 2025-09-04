@@ -238,6 +238,63 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+// プロフィール更新API
+app.post('/api/auth/update-profile', authenticateToken, async (req, res) => {
+    try {
+        const { nickname, email, phone } = req.body;
+        const userId = req.user.id;
+
+        if (!nickname || !email) {
+            return res.status(400).json({ error: 'ニックネームとメールアドレスは必須です' });
+        }
+
+        // メールアドレスが変更された場合、重複チェック
+        if (email !== req.user.email) {
+            const { data: existingUser } = await supabase
+                .from('users')
+                .select('id')
+                .eq('email', email)
+                .neq('id', userId)
+                .single();
+
+            if (existingUser) {
+                return res.status(400).json({ error: 'このメールアドレスは既に使用されています' });
+            }
+        }
+
+        // プロフィール更新
+        const { data: updatedUser, error: updateError } = await supabase
+            .from('users')
+            .update({
+                nickname,
+                email,
+                phone: phone || null,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId)
+            .select()
+            .single();
+
+        if (updateError) {
+            console.error('Profile update error:', updateError);
+            return res.status(500).json({ error: 'プロフィールの更新に失敗しました' });
+        }
+
+        res.json({
+            message: 'プロフィールが更新されました',
+            user: {
+                id: updatedUser.id,
+                nickname: updatedUser.nickname,
+                email: updatedUser.email,
+                phone: updatedUser.phone
+            }
+        });
+    } catch (error) {
+        console.error('Profile update error:', error);
+        res.status(500).json({ error: 'サーバーエラー' });
+    }
+});
+
 // パスワード変更API
 app.post('/api/auth/update-password', authenticateToken, async (req, res) => {
     try {

@@ -234,6 +234,10 @@ class FanClubApp {
         // Password change form
         const passwordForm = document.getElementById('passwordChangeForm');
         if (passwordForm) passwordForm.addEventListener('submit', (e) => this.handlePasswordChange(e));
+        
+        // Profile update form
+        const profileForm = document.getElementById('profileForm');
+        if (profileForm) profileForm.addEventListener('submit', (e) => this.handleProfileUpdate(e));
     }
 
     initializeRichEditors() {
@@ -330,6 +334,77 @@ class FanClubApp {
     }
     
     // This loadUserProfile method is replaced by the one at line 1032
+    
+    async handleProfileUpdate(e) {
+        e.preventDefault();
+        
+        const nickname = document.getElementById('profileNickname').value;
+        const email = document.getElementById('profileEmail').value;
+        const phone = document.getElementById('profilePhone').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        if (!nickname || !email) {
+            this.showToast('ニックネームとメールアドレスは必須です', 'error');
+            return;
+        }
+        
+        this.showLoading(true);
+        
+        try {
+            // プロフィール更新
+            const profileResponse = await fetch(`${this.supabaseClient.apiBase}/auth/update-profile`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.supabaseClient.token}`
+                },
+                body: JSON.stringify({ nickname, email, phone })
+            });
+            
+            if (!profileResponse.ok) {
+                const error = await profileResponse.json();
+                this.showToast(error.error || 'プロフィール更新に失敗しました', 'error');
+                return;
+            }
+            
+            const profileData = await profileResponse.json();
+            
+            // 現在のユーザー情報を更新
+            this.currentUser = { ...this.currentUser, ...profileData.user };
+            localStorage.setItem('current_user', JSON.stringify(this.currentUser));
+            
+            // パスワード変更が必要な場合
+            if (newPassword && newPassword === confirmPassword) {
+                // 現在のパスワードが必要
+                const currentPasswordInput = prompt('現在のパスワードを入力してください');
+                if (currentPasswordInput) {
+                    const passwordResponse = await this.supabaseClient.updatePassword(currentPasswordInput, newPassword);
+                    if (passwordResponse.ok) {
+                        this.showToast('プロフィールとパスワードが更新されました', 'success');
+                    } else {
+                        this.showToast('プロフィールは更新されましたが、パスワード変更に失敗しました', 'warning');
+                    }
+                } else {
+                    this.showToast('プロフィールが更新されました', 'success');
+                }
+            } else if (newPassword && newPassword !== confirmPassword) {
+                this.showToast('新しいパスワードが一致しません', 'error');
+            } else {
+                this.showToast('プロフィールが更新されました', 'success');
+            }
+            
+            // フォームをリセット
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            
+        } catch (error) {
+            console.error('Profile update error:', error);
+            this.showToast('プロフィール更新に失敗しました', 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
     
     async handlePasswordChange(e) {
         e.preventDefault();
@@ -775,10 +850,8 @@ class FanClubApp {
                     console.log('Fanclub card clicked, ID:', fanclubId);
                     // Update URL and navigate to fanclub
                     this.updateURL(`fanclub/${fanclubId}`);
-                    // Also directly call showFanclubDetail
-                    if (typeof this.showFanclubDetail === 'function') {
-                        this.showFanclubDetail(fanclubId);
-                    }
+                    // Directly call showFanclubDetail with proper context
+                    this.showFanclubDetail(fanclubId);
                 });
             });
         }, 100);
