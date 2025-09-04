@@ -238,6 +238,57 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+// パスワード変更API
+app.post('/api/auth/update-password', authenticateToken, async (req, res) => {
+    try {
+        const { current_password, new_password } = req.body;
+        const userId = req.user.id;
+
+        if (!current_password || !new_password) {
+            return res.status(400).json({ error: '現在のパスワードと新しいパスワードが必要です' });
+        }
+
+        // 現在のユーザー情報を取得
+        const { data: user, error: fetchError } = await supabase
+            .from('users')
+            .select('password_hash')
+            .eq('id', userId)
+            .single();
+
+        if (fetchError || !user) {
+            return res.status(404).json({ error: 'ユーザーが見つかりません' });
+        }
+
+        // 現在のパスワードを検証
+        const isValidPassword = await bcrypt.compare(current_password, user.password_hash);
+        if (!isValidPassword) {
+            return res.status(400).json({ error: '現在のパスワードが正しくありません' });
+        }
+
+        // 新しいパスワードをハッシュ化
+        const hashedNewPassword = await bcrypt.hash(new_password, 10);
+
+        // データベースを更新
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ 
+                password_hash: hashedNewPassword,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId);
+
+        if (updateError) {
+            console.error('Password update error:', updateError);
+            return res.status(500).json({ error: 'パスワードの更新に失敗しました' });
+        }
+
+        res.json({ message: 'パスワードが正常に変更されました' });
+    } catch (error) {
+        console.error('Password change error:', error);
+        res.status(500).json({ error: 'サーバーエラー' });
+    }
+});
+
 // ファンクラブAPI
 app.get('/api/fanclubs', async (req, res) => {
     try {
@@ -369,6 +420,41 @@ app.post('/api/fanclubs', authenticateToken, async (req, res) => {
         });
     } catch (error) {
         console.error('Fanclub creation error:', error);
+        res.status(500).json({ error: 'サーバーエラー' });
+    }
+});
+
+// 参加中のファンクラブ取得
+app.get('/api/fanclubs/joined', authenticateToken, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('memberships')
+            .select(`
+                fanclubs(
+                    id,
+                    name,
+                    description,
+                    monthly_fee,
+                    cover_image_url,
+                    member_count,
+                    users!fanclubs_owner_id_fkey(nickname)
+                )
+            `)
+            .eq('user_id', req.user.id);
+
+        if (error) {
+            console.error('Joined fanclubs fetch error:', error);
+            return res.status(500).json({ error: 'データベースエラー' });
+        }
+
+        const joinedFanclubs = data.map(membership => ({
+            ...membership.fanclubs,
+            owner_name: membership.fanclubs.users.nickname
+        }));
+
+        res.json(joinedFanclubs);
+    } catch (error) {
+        console.error('Joined fanclubs error:', error);
         res.status(500).json({ error: 'サーバーエラー' });
     }
 });
@@ -561,6 +647,150 @@ app.post('/api/fanclubs/:id/posts', authenticateToken, async (req, res) => {
         });
     } catch (error) {
         console.error('Post creation error:', error);
+        res.status(500).json({ error: 'サーバーエラー' });
+    }
+});
+
+// チャットAPI
+// チャットメッセージ取得
+app.get('/api/fanclubs/:id/chat', async (req, res) => {
+    const fanclubId = req.params.id;
+    const lastMessageId = req.query.last_id;
+
+    try {
+        let query = supabase
+            .from('chat_messages')
+            .select(`
+                id,
+                message,
+                created_at,
+                user_id,
+                users!chat_messages_user_id_fkey(nickname, avatar_url)
+            `)
+            .eq('fanclub_id', fanclubId)
+            .order('created_at', { ascending: true });
+
+        if (lastMessageId) {
+            query = query.gt('id', lastMessageId);
+        }
+
+        const { data: messages, error } = await query;
+
+        if (error) {
+            console.error('Chat messages fetch error:', error);
+            return res.status(500).json({ error: 'メッセージの取得に失敗しました' });
+        }
+
+        const formattedMessages = messages.map(msg => ({
+            id: msg.id,
+            user_id: msg.user_id,
+            user_name: msg.users.nickname,
+            user_avatar: msg.users.avatar_url,
+            message: msg.message,
+            created_at: new Date(msg.created_at).toLocaleTimeString('ja-JP'),
+            timestamp: msg.created_at
+        }));
+
+        res.json(formattedMessages);
+    } catch (error) {
+        console.error('Chat messages error:', error);
+        res.status(500).json({ error: 'サーバーエラー' });
+    }
+});
+
+// チャットメッセージ送信
+app.post('/api/fanclubs/:id/chat', authenticateToken, async (req, res) => {
+    const fanclubId = req.params.id;
+    const { message } = req.body;
+
+    if (!message || message.trim() === '') {
+        return res.status(400).json({ error: 'メッセージが必要です' });
+    }
+
+    try {
+        // メンバーシップチェック
+        const { data: membership } = await supabase
+            .from('memberships')
+            .select('id')
+            .eq('user_id', req.user.id)
+            .eq('fanclub_id', fanclubId)
+            .single();
+
+        if (!membership) {
+            return res.status(403).json({ error: 'このファンクラブのメンバーではありません' });
+        }
+
+        const { data: chatMessage, error } = await supabase
+            .from('chat_messages')
+            .insert([
+                {
+                    fanclub_id: fanclubId,
+                    user_id: req.user.id,
+                    message: message.trim()
+                }
+            ])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Chat message creation error:', error);
+            return res.status(500).json({ error: 'メッセージの送信に失敗しました' });
+        }
+
+        res.status(201).json({
+            message: 'メッセージが送信されました',
+            id: chatMessage.id
+        });
+    } catch (error) {
+        console.error('Chat message error:', error);
+        res.status(500).json({ error: 'サーバーエラー' });
+    }
+});
+
+// チャットメッセージ削除
+app.delete('/api/fanclubs/:fanclubId/chat/:messageId', authenticateToken, async (req, res) => {
+    const { fanclubId, messageId } = req.params;
+
+    try {
+        // メッセージの存在とオーナーシップをチェック
+        const { data: message, error: fetchError } = await supabase
+            .from('chat_messages')
+            .select('user_id, fanclub_id')
+            .eq('id', messageId)
+            .single();
+
+        if (fetchError || !message) {
+            return res.status(404).json({ error: 'メッセージが見つかりません' });
+        }
+
+        // ファンクラブオーナーかメッセージの投稿者かチェック
+        const { data: membership } = await supabase
+            .from('memberships')
+            .select('is_owner')
+            .eq('user_id', req.user.id)
+            .eq('fanclub_id', fanclubId)
+            .single();
+
+        const isOwner = membership && membership.is_owner;
+        const isMessageAuthor = message.user_id === req.user.id;
+
+        if (!isOwner && !isMessageAuthor) {
+            return res.status(403).json({ error: 'メッセージを削除する権限がありません' });
+        }
+
+        const { error: deleteError } = await supabase
+            .from('chat_messages')
+            .delete()
+            .eq('id', messageId);
+
+        if (deleteError) {
+            console.error('Chat message deletion error:', deleteError);
+            return res.status(500).json({ error: 'メッセージの削除に失敗しました' });
+        }
+
+        res.json({ message: 'メッセージが削除されました' });
+    } catch (error) {
+        console.error('Chat message deletion error:', error);
         res.status(500).json({ error: 'サーバーエラー' });
     }
 });

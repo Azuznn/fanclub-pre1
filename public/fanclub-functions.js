@@ -298,30 +298,31 @@ Object.assign(FanClubApp.prototype, {
             return;
         }
         
-        // Add message to localStorage-based chat storage
-        const fanclubId = this.currentFanclub?.id;
-        if (!fanclubId) return;
+        if (!this.currentFanclub) {
+            this.showToast('ファンクラブが選択されていません', 'error');
+            return;
+        }
         
-        const chatKey = `fanclub_chat_${fanclubId}`;
-        const existingMessages = JSON.parse(localStorage.getItem(chatKey) || '[]');
-        
-        const newMessage = {
-            id: Date.now(),
-            user_id: this.currentUser.id,
-            user_name: this.currentUser.name,
-            message: message,
-            timestamp: new Date().toISOString(),
-            created_at: new Date().toLocaleTimeString('ja-JP')
-        };
-        
-        existingMessages.push(newMessage);
-        localStorage.setItem(chatKey, JSON.stringify(existingMessages));
-        
-        // Clear input and reload messages
-        if (input) input.value = '';
-        await this.loadChatMessages(fanclubId);
-        
-        this.showToast('メッセージを送信しました', 'success');
+        try {
+            const response = await this.supabaseClient.sendChatMessage(this.currentFanclub.id, message);
+            
+            if (response.ok) {
+                // Clear input
+                if (input) input.value = '';
+                
+                // Reload messages
+                await this.loadChatMessages(this.currentFanclub.id);
+                
+                this.showToast('メッセージを送信しました', 'success');
+            } else {
+                const error = await response.text();
+                this.showToast('メッセージの送信に失敗しました', 'error');
+                console.error('Chat send error:', error);
+            }
+        } catch (error) {
+            console.error('Chat submit error:', error);
+            this.showToast('メッセージの送信に失敗しました', 'error');
+        }
     },
     
     async handleSettingsSubmit(e) {
@@ -367,33 +368,36 @@ Object.assign(FanClubApp.prototype, {
         const container = document.getElementById('chatMessages');
         if (!container) return;
         
-        // Load messages from localStorage
-        const chatKey = `fanclub_chat_${fanclubId}`;
-        const messages = JSON.parse(localStorage.getItem(chatKey) || '[]');
-        
-        // Add some initial welcome messages if empty
-        if (messages.length === 0) {
-            const welcomeMessages = [
-                {
-                    id: 1,
-                    user_id: 'system',
-                    user_name: 'システム',
-                    message: 'ファンクラブチャットへようこそ！',
-                    created_at: new Date().toLocaleTimeString('ja-JP'),
-                    timestamp: new Date().toISOString()
-                },
-                {
-                    id: 2,
-                    user_id: 'admin',
-                    user_name: '管理者',
-                    message: 'みなさんで楽しくお話しましょう！',
-                    created_at: new Date().toLocaleTimeString('ja-JP'),
-                    timestamp: new Date().toISOString()
-                }
-            ];
-            localStorage.setItem(chatKey, JSON.stringify(welcomeMessages));
-            messages.push(...welcomeMessages);
-        }
+        try {
+            const response = await this.supabaseClient.getChatMessages(fanclubId);
+            let messages = [];
+            
+            if (response.ok) {
+                messages = await response.json();
+            }
+            
+            // Add some initial welcome messages if empty (for demo purposes)
+            if (messages.length === 0) {
+                const welcomeMessages = [
+                    {
+                        id: 'welcome-1',
+                        user_id: 'system',
+                        user_name: 'システム',
+                        message: 'ファンクラブチャットへようこそ！',
+                        created_at: new Date().toLocaleTimeString('ja-JP'),
+                        timestamp: new Date().toISOString()
+                    },
+                    {
+                        id: 'welcome-2',
+                        user_id: this.currentFanclub?.owner_id || 'admin',
+                        user_name: this.currentFanclub?.owner_name || '管理者',
+                        message: 'みなさんで楽しくお話しましょう！',
+                        created_at: new Date().toLocaleTimeString('ja-JP'),
+                        timestamp: new Date().toISOString()
+                    }
+                ];
+                messages = welcomeMessages;
+            }
         
         // Render messages
         container.innerHTML = messages.map(msg => {
@@ -426,19 +430,28 @@ Object.assign(FanClubApp.prototype, {
             return;
         }
         
-        const chatKey = `fanclub_chat_${fanclubId}`;
-        let messages = JSON.parse(localStorage.getItem(chatKey) || '[]');
-        
-        // Remove the message
-        messages = messages.filter(msg => msg.id != messageId);
-        
-        // Save back to localStorage
-        localStorage.setItem(chatKey, JSON.stringify(messages));
-        
-        // Reload the chat to show updated messages
-        await this.loadChatMessages(fanclubId);
-        
-        this.showToast('メッセージを削除しました', 'success');
+        try {
+            const response = await fetch(`${this.supabaseClient.apiBase}/fanclubs/${fanclubId}/chat/${messageId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${this.supabaseClient.token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                // Reload the chat to show updated messages
+                await this.loadChatMessages(fanclubId);
+                this.showToast('メッセージを削除しました', 'success');
+            } else {
+                const error = await response.text();
+                this.showToast('メッセージの削除に失敗しました', 'error');
+                console.error('Chat delete error:', error);
+            }
+        } catch (error) {
+            console.error('Chat delete error:', error);
+            this.showToast('メッセージの削除に失敗しました', 'error');
+        }
     },
     
     async loadAdminPosts() {
